@@ -24,14 +24,15 @@ type appModel struct {
 	footerMsg       string
 }
 
-func newModel() appModel {
+func newModel(d *downloader) appModel {
 	return appModel{
-		keymap:     newKeymap(),
-		help:       help.New(),
-		urlPrompt:  newURLPrompt(),
-		topbar:     newTopbar(),
-		downloader: newDownloaderModel(),
-		errorStyle: newErrorStyle(),
+		keymap:          newKeymap(),
+		help:            help.New(),
+		urlPrompt:       newURLPrompt(),
+		topbar:          newTopbar(),
+		downloader:      d,
+		downloaderModel: newDownloaderModel(),
+		errorStyle:      newErrorStyle(),
 	}
 }
 
@@ -48,7 +49,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, m.keymap.help):
 			m.help.ShowAll = !m.help.ShowAll
 		case key.Matches(msg, m.keymap.quit):
-			return m, tea.Quit
+			return m, m.downloader.quit
 		case key.Matches(msg, m.keymap.next):
 		case key.Matches(msg, m.keymap.prev):
 		case key.Matches(msg, m.keymap.clear):
@@ -62,7 +63,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			cmds = append(cmds, errorCmd(nil)) // clear previous error
-			cmds = append(cmds, downloadCmd(filmUrl.String()))
+			cmds = append(cmds, m.downloader.downloadCmd(filmUrl.String()))
 
 			m.urlPrompt.Reset()
 		}
@@ -77,7 +78,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cmds = append(cmds, cmd)
 	m.topbar, cmd = m.topbar.Update(msg)
 	cmds = append(cmds, cmd)
-	m.downloader, cmd = m.downloader.Update(msg)
+	m.downloaderModel, cmd = m.downloaderModel.Update(msg)
 	cmds = append(cmds, cmd)
 
 	return m, tea.Batch(cmds...)
@@ -95,7 +96,7 @@ func (m appModel) View() string {
 		lipgloss.Center,
 		m.topbar.View(),
 		m.urlPrompt.View(),
-		m.downloader.View(),
+		m.downloaderModel.View(),
 		m.help.View(m.keymap),
 		footer,
 	)

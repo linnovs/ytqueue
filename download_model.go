@@ -2,21 +2,19 @@ package main
 
 import (
 	"fmt"
-	"log/slog"
 
 	"github.com/charmbracelet/bubbles/progress"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
-type downloadMsg struct {
+type enqueueDownloadMsg struct {
 	url string
 }
 
-func downloadCmd(url string) tea.Cmd {
-	return func() tea.Msg {
-		return downloadMsg{url}
-	}
+type finishDownloadMsg struct {
+	title    string
+	filepath string
 }
 
 type downloaderModel struct {
@@ -72,12 +70,15 @@ func (d *downloaderModel) Update(msg tea.Msg) (*downloaderModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		d.width = msg.Width - d.style.GetHorizontalBorderSize()
-		d.progress.Width = d.width - 2
-		slog.Info("downloader resized", slog.Int("width", d.width))
-	case downloadMsg:
+	case enqueueDownloadMsg:
 		d.queued++
+	case finishDownloadMsg:
+		d.queued--
+	case progress.FrameMsg:
+		progressModel, cmd := d.progress.Update(msg)
+		d.progress = progressModel.(progress.Model)
 
-		slog.Info("download requested", slog.String("url", msg.url))
+		return d, cmd
 	}
 
 	return d, nil
