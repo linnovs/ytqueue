@@ -57,7 +57,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, errorCmd(err)
 			}
 
-			cmds = append(cmds, errorCmd(nil))
+			cmds = append(cmds, errorCmd(nil)) // clear previous error
 			cmds = append(cmds, downloadCmd(filmUrl.String()))
 
 			m.urlPrompt.Reset()
