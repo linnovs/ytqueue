@@ -1,0 +1,18 @@
+[tasks.build]
+run = "go build -o ./tmp/ytqueue ."
+sources = ["**/*.go", "go.mod", "go.sum"]
+
+[tasks.run]
+run = '''
+#!/usr/bin/env bash
+
+while true; do
+    ./tmp/ytqueue
+    read -s -p "ytqueue exited. Press [Enter] to restart..." restart
+    echo
+    if [[ ! -z "$restart" ]]; then
+        echo "Exiting..."
+        break
+    fi
+done
+'''
