@@ -26,6 +26,7 @@ func (m keymap) ShortHelp() []key.Binding {
 
 func (m keymap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
-		{m.quit, m.next, m.prev, m.clear, m.submit},
+		{m.next, m.prev, m.quit},
+		{m.clear, m.submit},
 	}
 }
