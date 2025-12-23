@@ -26,6 +26,12 @@ func (p *urlPrompt) Init() tea.Cmd {
 }
 
 func (p *urlPrompt) Update(msg tea.Msg) (*urlPrompt, tea.Cmd) {
+	if msg, ok := msg.(tea.WindowSizeMsg); ok {
+		p.prompt.Width = msg.Width - p.style.GetHorizontalBorderSize() - lipgloss.Width(
+			p.prompt.Prompt+" ",
+		)
+	}
+
 	var cmd tea.Cmd
 	p.prompt, cmd = p.prompt.Update(msg)
 
@@ -42,8 +48,4 @@ func (p *urlPrompt) Focus() {
 
 func (p *urlPrompt) Reset() {
 	p.prompt.Reset()
-}
-
-func (p *urlPrompt) setWidth(width int) {
-	p.prompt.Width = width - p.style.GetHorizontalBorderSize() - lipgloss.Width(p.prompt.Prompt+" ")
 }
