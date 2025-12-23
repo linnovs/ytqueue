@@ -14,7 +14,7 @@ type urlPrompt struct {
 func newURLPrompt() *urlPrompt {
 	i := textinput.New()
 	i.Placeholder = "Enter URL here..."
-	i.Blur()
+	i.Focus()
 
 	style := lipgloss.NewStyle().BorderStyle(lipgloss.RoundedBorder())
 
