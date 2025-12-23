@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"fmt"
 	"io"
 	"log/slog"
 	"os/exec"
@@ -45,7 +46,7 @@ func (d *downloader) readStderr(stderrPipe io.ReadCloser) {
 	scanner := bufio.NewScanner(stderrPipe)
 
 	for scanner.Scan() {
-		slog.Error("stderr", slog.String("line", scanner.Text()))
+		d.p.Send(errorMsg{err: fmt.Errorf("[downloader] %s", scanner.Text())})
 	}
 }
 
@@ -69,18 +70,21 @@ func (d *downloader) download(ctx context.Context, url string) {
 
 	stdoutPipe, err := cmd.StdoutPipe()
 	if err != nil {
-		d.p.Send(errorMsg{err})
+		d.p.Send(errorMsg{err: fmt.Errorf("[downloader] failed to get stdout pipe: %w", err)})
 		return
 	}
 
 	stderrPipe, err := cmd.StderrPipe()
 	if err != nil {
-		d.p.Send(errorMsg{err})
+		d.p.Send(errorMsg{err: fmt.Errorf("[downloader] failed to get stderr pipe: %w", err)})
 		return
 	}
 
 	if err := cmd.Start(); err != nil {
-		d.p.Send(errorMsg{err})
+		d.p.Send(
+			errorMsg{err: fmt.Errorf("[downloader] failed to start download command: %w", err)},
+		)
+
 		return
 	}
 
@@ -88,7 +92,6 @@ func (d *downloader) download(ctx context.Context, url string) {
 	go d.readStderr(stderrPipe)
 
 	if err := cmd.Wait(); err != nil {
-		d.p.Send(errorMsg{err})
 		return
 	}
 }
