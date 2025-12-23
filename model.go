@@ -14,11 +14,13 @@ type waitingMsg struct{}
 
 type appModel struct {
 	keymap          keymap
+	height          int
 	help            help.Model
 	urlPrompt       *urlPrompt
 	topbar          topbar
 	downloader      *downloader
 	downloaderModel *downloaderModel
+	datatable       *datatable
 	errorStyle      lipgloss.Style
 	err             error
 	footerMsg       string
@@ -32,6 +34,7 @@ func newModel(d *downloader) appModel {
 		topbar:          newTopbar(),
 		downloader:      d,
 		downloaderModel: newDownloaderModel(),
+		datatable:       newDatatable(),
 		errorStyle:      newErrorStyle(),
 	}
 }
@@ -67,6 +70,8 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			m.urlPrompt.Reset()
 		}
+	case tea.WindowSizeMsg:
+		m.height = msg.Height
 	case waitingMsg:
 		m.footerMsg = "Waiting for downloads to finish..."
 	case errorMsg:
@@ -80,6 +85,8 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cmds = append(cmds, cmd)
 	m.downloaderModel, cmd = m.downloaderModel.Update(msg)
 	cmds = append(cmds, cmd)
+	m.datatable, cmd = m.datatable.Update(msg)
+	cmds = append(cmds, cmd)
 
 	return m, tea.Batch(cmds...)
 }
@@ -92,12 +99,33 @@ func (m appModel) View() string {
 		footer = m.errorStyle.Render(m.footerMsg)
 	}
 
+	topbar := m.topbar.View()
+	urlPrompt := m.urlPrompt.View()
+	downloaderView := m.downloaderModel.View()
+	helpView := m.help.View(m.keymap)
+
+	h := lipgloss.Height
+
+	topbarHeight := h(topbar)
+	urlPromptHeight := h(urlPrompt)
+	downloaderViewHeight := h(downloaderView)
+	helpViewHeight := h(helpView)
+	footerHeight := h(footer)
+
+	heightAdjusted := m.height - topbarHeight
+	heightAdjusted -= urlPromptHeight + downloaderViewHeight + helpViewHeight + footerHeight
+	heightAdjusted -= m.datatable.style.GetVerticalBorderSize()
+
+	m.datatable.style = m.datatable.style.Height(heightAdjusted)
+	dataTable := m.datatable.View()
+
 	return lipgloss.JoinVertical(
 		lipgloss.Center,
-		m.topbar.View(),
-		m.urlPrompt.View(),
-		m.downloaderModel.View(),
-		m.help.View(m.keymap),
+		topbar,
+		urlPrompt,
+		dataTable,
+		downloaderView,
+		helpView,
 		footer,
 	)
 }
