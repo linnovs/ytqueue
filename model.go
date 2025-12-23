@@ -15,6 +15,7 @@ type appModel struct {
 	help       help.Model
 	urlPrompt  *urlPrompt
 	topbar     topbar
+	downloader *downloaderModel
 	errorStyle lipgloss.Style
 	err        error
 }
@@ -25,6 +26,7 @@ func newModel() appModel {
 		help:       help.New(),
 		urlPrompt:  newURLPrompt(),
 		topbar:     newTopbar(),
+		downloader: newDownloaderModel(),
 		errorStyle: newErrorStyle(),
 	}
 }
@@ -69,6 +71,8 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cmds = append(cmds, cmd)
 	m.topbar, cmd = m.topbar.Update(msg)
 	cmds = append(cmds, cmd)
+	m.downloader, cmd = m.downloader.Update(msg)
+	cmds = append(cmds, cmd)
 
 	return m, tea.Batch(cmds...)
 }
@@ -83,6 +87,7 @@ func (m appModel) View() string {
 		lipgloss.Center,
 		m.topbar.View(),
 		m.urlPrompt.View(),
+		m.downloader.View(),
 		m.help.View(m.keymap),
 		errorSection,
 	)
