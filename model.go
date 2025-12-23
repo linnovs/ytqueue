@@ -10,14 +10,18 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+type waitingMsg struct{}
+
 type appModel struct {
-	keymap     keymap
-	help       help.Model
-	urlPrompt  *urlPrompt
-	topbar     topbar
-	downloader *downloaderModel
-	errorStyle lipgloss.Style
-	err        error
+	keymap          keymap
+	help            help.Model
+	urlPrompt       *urlPrompt
+	topbar          topbar
+	downloader      *downloader
+	downloaderModel *downloaderModel
+	errorStyle      lipgloss.Style
+	err             error
+	footerMsg       string
 }
 
 func newModel() appModel {
@@ -62,6 +66,8 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			m.urlPrompt.Reset()
 		}
+	case waitingMsg:
+		m.footerMsg = "Waiting for downloads to finish..."
 	case errorMsg:
 		m.err = msg.err
 	}
@@ -78,9 +84,11 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m appModel) View() string {
-	var errorSection string
+	var footer string
 	if m.err != nil {
-		errorSection = m.errorStyle.Render(fmt.Sprintf("Error: %s", m.err))
+		footer = m.errorStyle.Render(fmt.Sprintf("Error: %s", m.err))
+	} else if m.footerMsg != "" {
+		footer = m.errorStyle.Render(m.footerMsg)
 	}
 
 	return lipgloss.JoinVertical(
@@ -89,6 +97,6 @@ func (m appModel) View() string {
 		m.urlPrompt.View(),
 		m.downloader.View(),
 		m.help.View(m.keymap),
-		errorSection,
+		footer,
 	)
 }
