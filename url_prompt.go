@@ -45,6 +45,5 @@ func (p *urlPrompt) Reset() {
 }
 
 func (p *urlPrompt) setWidth(width int) {
-	padding := 1 // extra space for cursor
-	p.prompt.Width = width - p.style.GetHorizontalBorderSize() - len(p.prompt.Prompt) - padding
+	p.prompt.Width = width - p.style.GetHorizontalBorderSize() - lipgloss.Width(p.prompt.Prompt+" ")
 }
