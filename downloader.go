@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
@@ -39,6 +40,19 @@ func (d *downloader) readStdout(stdoutPipe io.ReadCloser) {
 
 	for scanner.Scan() {
 		slog.Info("stdout", slog.String("line", scanner.Text()))
+
+		var msg downloadProgressMsg
+		if err := json.Unmarshal(scanner.Bytes(), &msg); err != nil {
+			d.p.Send(
+				errorMsg{
+					err: fmt.Errorf("[downloader] failed to unmarshal progress message: %w", err),
+				},
+			)
+
+			continue
+		}
+
+		d.p.Send(msg)
 	}
 }
 
