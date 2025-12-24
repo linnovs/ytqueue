@@ -31,14 +31,18 @@ func loadConfig() (*config, error) {
 		return nil, err
 	}
 
-	if err := k.Unmarshal("", cfg); err != nil {
+	if err := k.UnmarshalWithConf("", cfg, koanf.UnmarshalConf{FlatPaths: true}); err != nil {
 		return nil, err
 	}
 
-	cfg.DownloadPath, _ = strings.CutPrefix(cfg.DownloadPath, "~")
-
 	if cfg.DownloadPath == "" {
-		cfg.DownloadPath = path.Join(xdg.Home, "Downloads")
+		cfg.DownloadPath = "~/Downloads"
+	}
+
+	var isHome bool
+
+	if cfg.DownloadPath, isHome = strings.CutPrefix(cfg.DownloadPath, "~"); isHome {
+		cfg.DownloadPath = path.Join(xdg.Home, cfg.DownloadPath)
 	}
 
 	if cfg.TempName == "" {
