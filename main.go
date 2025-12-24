@@ -26,6 +26,14 @@ func runApp() int {
 		return 1
 	}
 
+	cfg, err := loadConfig()
+	if err != nil {
+		slog.Error("unable to load config", slog.String("error", err.Error()))
+		return 1
+	}
+
+	defer cleanupTempDir(cfg.tempDir)
+
 	handler := slog.NewTextHandler(out, &slog.HandlerOptions{Level: slog.LevelDebug})
 	slog.SetDefault(slog.New(handler))
 
