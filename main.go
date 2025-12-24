@@ -34,6 +34,11 @@ func runApp() int {
 
 	defer cleanupTempDir(cfg.tempDir)
 
+	if err := migrateDB(); err != nil {
+		slog.Error("database migration failed", slog.String("error", err.Error()))
+		return 1
+	}
+
 	handler := slog.NewTextHandler(out, &slog.HandlerOptions{Level: slog.LevelDebug})
 	slog.SetDefault(slog.New(handler))
 
