@@ -26,21 +26,26 @@ type appModel struct {
 	footerMsg       string
 }
 
-func newModel(d *downloader) appModel {
+func newModel(d *downloader, cfg *config) appModel {
 	return appModel{
 		keymap:          newKeymap(),
 		help:            help.New(),
 		urlPrompt:       newURLPrompt(),
 		topbar:          newTopbar(),
 		downloader:      d,
-		downloaderModel: newDownloaderModel(),
+		downloaderModel: newDownloaderModel(cfg.DownloadPath),
 		datatable:       newDatatable(),
 		errorStyle:      newErrorStyle(),
 	}
 }
 
 func (m appModel) Init() tea.Cmd {
-	return nil
+	return tea.Batch(
+		m.urlPrompt.Init(),
+		m.topbar.Init(),
+		m.downloaderModel.Init(),
+		m.datatable.Init(),
+	)
 }
 
 func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {

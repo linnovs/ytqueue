@@ -37,8 +37,8 @@ func runApp() int {
 	handler := slog.NewTextHandler(out, &slog.HandlerOptions{Level: slog.LevelDebug})
 	slog.SetDefault(slog.New(handler))
 
-	d := newDownloader()
-	p := tea.NewProgram(newModel(d), tea.WithAltScreen())
+	d := newDownloader(cfg)
+	p := tea.NewProgram(newModel(d, cfg), tea.WithAltScreen())
 
 	d.setProgram(p)
 

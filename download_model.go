@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"path"
 	"time"
 
 	"github.com/charmbracelet/bubbles/progress"
@@ -17,8 +18,9 @@ type finishDownloadMsg struct{}
 
 type downloadProgressMsg struct {
 	Filename        string  `json:"filename"`
-	DownloadedBytes int64   `json:"downloaded_bytes"`
-	TotalBytes      int64   `json:"total_bytes"`
+	DownloadedBytes float64 `json:"downloaded_bytes"`
+	TotalBytes      float64 `json:"total_bytes"`
+	TotalBytesEst   float64 `json:"total_bytes_estimate"`
 	Speed           float64 `json:"speed"`
 	Elapsed         float64 `json:"elapsed"`
 	Eta             float64 `json:"eta"`
@@ -27,11 +29,12 @@ type downloadProgressMsg struct {
 type downloadStatus int
 
 func (s downloadStatus) String() string {
-	return [...]string{"IDLE", "DOWNLOADING", "FINISHED", "ERROR"}[s]
+	return [...]string{"IDLE", "READY", "DOWNLOADING", "FINISHED", "ERROR"}[s]
 }
 
 const (
 	downloadStatusIdle downloadStatus = iota
+	downloadStatusReady
 	downloadStatusDownloading
 	downloadStatusFinished
 	downloadStatusError
@@ -43,40 +46,46 @@ type downloaderModel struct {
 	titleBarStyle  lipgloss.Style
 	inqueueStyle   lipgloss.Style
 	queueSizeStyle lipgloss.Style
-	filenameStyle  lipgloss.Style
 	statusStyle    lipgloss.Style
+	etaStyle       lipgloss.Style
 	style          lipgloss.Style
+	downloadPath   string
 	progress       progress.Model
 	width          int
 	status         downloadStatus
-	filename       string
+	filename       *runningTextModel
 	speed          float64
 	elapsed        float64
 	eta            float64
 }
 
-func newDownloaderModel() *downloaderModel {
+const defaultFilenameWidth = 20
+
+func newDownloaderModel(downloadDir string) *downloaderModel {
 	titleBarStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("250")).
 		Background(lipgloss.Color("0"))
-	titleStyle := titleBarStyle.
-		Bold(true).
-		Italic(true).
+	componentStyle := lipgloss.NewStyle().Bold(true).Padding(0, 1)
+
+	titleStyle := componentStyle.Italic(true).
 		Background(lipgloss.Color("57")).
-		Padding(0, 1).
 		SetString("DOWNLOADER")
-	inqueueStyle := titleStyle.Italic(false).
-		Background(lipgloss.Color("30")).
-		Padding(0, 1).
-		SetString("INQUEUE")
-	queueSizeStyle := inqueueStyle.Background(lipgloss.Color("39")).
-		AlignHorizontal(lipgloss.Right).
-		SetString("")
-	downloadFilenameStyle := lipgloss.NewStyle().
-		Bold(true).
-		Padding(0, 1).
-		Foreground(lipgloss.Color("39"))
-	downloadingStyle := lipgloss.NewStyle().AlignHorizontal(lipgloss.Center).Padding(0, 1)
+	inqueueStyle := componentStyle.Background(lipgloss.Color("30")).SetString("INQUEUE")
+	queueSizeStyle := componentStyle.Background(lipgloss.Color("39"))
+	filenameStyle := componentStyle.Foreground(lipgloss.Color("39"))
+
+	const statusPadding = 2
+	statusStyle := componentStyle.Width(len(downloadStatusDownloading.String()) + statusPadding).
+		AlignHorizontal(lipgloss.Center).
+		Foreground(lipgloss.Color("229"))
+	etaStyle := componentStyle
+
+	downloadPath := lipgloss.JoinHorizontal(
+		lipgloss.Top,
+		componentStyle.Background(lipgloss.Color("27")).Render("PATH"),
+		componentStyle.Background(lipgloss.Color("39")).Render(downloadDir),
+	)
+
 	style := lipgloss.NewStyle().BorderStyle(lipgloss.RoundedBorder())
 
 	return &downloaderModel{
@@ -86,53 +95,59 @@ func newDownloaderModel() *downloaderModel {
 		titleBarStyle:  titleBarStyle,
 		inqueueStyle:   inqueueStyle,
 		queueSizeStyle: queueSizeStyle,
-		filenameStyle:  downloadFilenameStyle,
-		statusStyle:    downloadingStyle,
+		filename:       newRunningTextModel("", defaultFilenameWidth, filenameStyle),
+		statusStyle:    statusStyle,
+		etaStyle:       etaStyle,
 		style:          style,
+		downloadPath:   downloadPath,
 		progress:       progress.New(progress.WithDefaultGradient()),
 		status:         downloadStatusIdle,
 	}
 }
 
 func (d *downloaderModel) Init() tea.Cmd {
-	return nil
+	return tea.Batch(d.progress.Init(), d.filename.Init())
 }
 
 func (d *downloaderModel) Update(msg tea.Msg) (*downloaderModel, tea.Cmd) {
+	var cmds []tea.Cmd
+
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		d.width = msg.Width - d.style.GetHorizontalBorderSize()
 	case enqueueDownloadMsg:
 		d.queued++
+		d.status = downloadStatusReady
 	case finishDownloadMsg:
 		d.queued--
-		d.status, d.filename, d.speed, d.elapsed, d.eta = downloadStatusIdle, "", 0, 0, 0
-
-		return d, d.progress.SetPercent(0)
+		d.status, d.filename.text, d.speed, d.elapsed, d.eta = downloadStatusIdle, "", 0, 0, 0
+		cmds = append(cmds, d.progress.SetPercent(0))
 	case downloadProgressMsg:
-		if msg.DownloadedBytes < msg.TotalBytes {
+		if msg.DownloadedBytes < max(msg.TotalBytes, msg.TotalBytesEst) {
 			d.status = downloadStatusDownloading
 		} else {
 			d.status = downloadStatusFinished
 		}
 
-		msg.TotalBytes = max(msg.TotalBytes, 1)
-		msg.DownloadedBytes = min(msg.DownloadedBytes, msg.TotalBytes)
-		d.filename = msg.Filename
+		total := max(msg.TotalBytes, msg.TotalBytesEst, 1)
+		downloaded := min(msg.DownloadedBytes, total)
+		d.filename.text = path.Base(msg.Filename)
 		d.speed = msg.Speed
-		d.elapsed = msg.Elapsed
-		d.eta = msg.Eta
-		percent := (float64(msg.DownloadedBytes) / float64(msg.TotalBytes))
-
-		return d, d.progress.SetPercent(percent)
+		d.elapsed = msg.Elapsed * float64(time.Second)
+		d.eta = msg.Eta * float64(time.Second)
+		percent := downloaded / total
+		cmds = append(cmds, d.progress.SetPercent(percent))
 	case progress.FrameMsg:
 		progressModel, cmd := d.progress.Update(msg)
+		cmds = append(cmds, cmd)
 		d.progress = progressModel.(progress.Model)
-
-		return d, cmd
 	}
 
-	return d, nil
+	filename, cmd := d.filename.Update(msg)
+	cmds = append(cmds, cmd)
+	d.filename = filename.(*runningTextModel)
+
+	return d, tea.Batch(cmds...)
 }
 
 const (
@@ -163,22 +178,34 @@ func (d *downloaderModel) View() string {
 	title := d.titleStyle.Render()
 	inqueue := d.inqueueStyle.Render()
 	queueSize := d.queueSizeStyle.Render(fmt.Sprint(d.queued))
-	spacing := lipgloss.NewStyle().Width(d.width - w(title) - w(inqueue) - w(queueSize)).Render()
-	titleBar := d.titleBarStyle.Render(lipgloss.JoinHorizontal(
-		lipgloss.Top, title, spacing, inqueue, queueSize,
-	))
+	info := lipgloss.NewStyle().
+		Width(d.width - w(title)).
+		AlignHorizontal(lipgloss.Right).
+		Render(lipgloss.JoinHorizontal(lipgloss.Top, d.downloadPath, inqueue, queueSize))
+	titleBar := d.titleBarStyle.Render(lipgloss.JoinHorizontal(lipgloss.Top, title, info))
 
+	var filename, speed, elapsed, eta string
 	status := d.statusStyle.Render(d.status.String())
-	filename := d.filenameStyle.Render(d.filename)
-	speed := d.statusStyle.Render(formatSpeed(d.speed))
-	elapsed := d.statusStyle.Render(time.Duration(d.elapsed).String())
-	eta := d.statusStyle.Render(fmt.Sprintf("ETA %s", time.Duration(d.eta).String()))
+	d.progress.ShowPercentage = false
+
+	if d.status == downloadStatusDownloading {
+		filename = d.filename.View()
+		speed = d.etaStyle.Render(formatSpeed(d.speed))
+		elapsed = d.etaStyle.Render(time.Duration(d.elapsed).Round(time.Second).String())
+		eta = d.etaStyle.Render(
+			fmt.Sprintf("ETA %s", time.Duration(d.eta).Round(time.Second).String()),
+		)
+		d.progress.ShowPercentage = true
+	}
+
 	d.progress.Width = d.width - w(status) - w(filename) - w(speed) - w(elapsed) - w(eta)
+	progress := d.progress.View()
+
 	downloadBar := lipgloss.JoinHorizontal(
 		lipgloss.Top,
 		status,
 		filename,
-		d.progress.View(),
+		progress,
 		speed,
 		elapsed,
 		eta,

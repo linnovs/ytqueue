@@ -14,19 +14,21 @@ import (
 )
 
 type downloader struct {
-	p       *tea.Program
-	queue   chan string
-	closeCh chan struct{}
-	wg      *sync.WaitGroup
+	p           *tea.Program
+	downloadDir string
+	tempDir     string
+	queue       chan string
+	closeCh     chan struct{}
+	wg          *sync.WaitGroup
 }
 
-func newDownloader() *downloader {
+func newDownloader(cfg *config) *downloader {
 	const queueSize = 100
 	q := make(chan string, queueSize)
 	closeCh := make(chan struct{})
 	wg := &sync.WaitGroup{}
 
-	return &downloader{nil, q, closeCh, wg}
+	return &downloader{nil, cfg.DownloadPath, cfg.tempDir, q, closeCh, wg}
 }
 
 func (d *downloader) setProgram(p *tea.Program) {
@@ -39,8 +41,6 @@ func (d *downloader) readStdout(stdoutPipe io.ReadCloser) {
 	scanner := bufio.NewScanner(stdoutPipe)
 
 	for scanner.Scan() {
-		slog.Info("stdout", slog.String("line", scanner.Text()))
-
 		var msg downloadProgressMsg
 		if err := json.Unmarshal(scanner.Bytes(), &msg); err != nil {
 			d.p.Send(
@@ -79,6 +79,10 @@ func (d *downloader) download(ctx context.Context, url string) {
 		"--no-warning",
 		"--output",
 		titleFormat,
+		"--paths",
+		fmt.Sprintf("home:%s", d.downloadDir), // #nosec G204
+		"--paths",
+		fmt.Sprintf("temp:%s", d.tempDir), // #nosec G204
 		url,
 	)
 
@@ -135,6 +139,7 @@ func (d *downloader) startDownload(ctx context.Context, url string) {
 
 	d.download(ctx, url)
 	d.p.Send(finishDownloadMsg{})
+	slog.Info("download completed", slog.String("url", url))
 }
 
 func (d *downloader) start() {
