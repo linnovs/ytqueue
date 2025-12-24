@@ -14,7 +14,7 @@ type waitingMsg struct{}
 
 type appModel struct {
 	keymap          keymap
-	height          int
+	width, height   int
 	help            help.Model
 	urlPrompt       *urlPrompt
 	topbar          topbar
@@ -76,7 +76,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.urlPrompt.Reset()
 		}
 	case tea.WindowSizeMsg:
-		m.height = msg.Height
+		m.width, m.height = msg.Width, msg.Height
 	case waitingMsg:
 		m.footerMsg = "Waiting for downloads to finish..."
 	case errorMsg:
@@ -96,7 +96,34 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
+const (
+	minWidth  = 100
+	minHeight = 35
+)
+
 func (m appModel) View() string {
+	if m.width < minWidth || m.height < minHeight {
+		message := lipgloss.NewStyle().Bold(true).Render("Terminal size too small")
+		currentSize := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("9")).
+			Render(fmt.Sprintf("%dx%d", m.width, m.height))
+		minimumSize := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("10")).
+			Render(fmt.Sprintf("%dx%d", minWidth, minHeight))
+
+		return lipgloss.NewStyle().
+			Width(m.width).
+			Height(m.height).
+			Align(lipgloss.Center, lipgloss.Center).
+			Render(
+				lipgloss.JoinVertical(
+					lipgloss.Center, message,
+					"Current size: "+currentSize,
+					"Minimum size: "+minimumSize,
+				),
+			)
+	}
+
 	var footer string
 	if m.err != nil {
 		footer = m.errorStyle.Render(fmt.Sprintf("Error: %s", m.err))
