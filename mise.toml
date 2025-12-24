@@ -23,3 +23,6 @@ while true; do
     fi
 done
 '''
+
+[tasks.generate]
+run = "sqlc generate"
