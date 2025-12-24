@@ -1,5 +1,12 @@
 [tasks.build]
-run = "go build -o ./tmp/ytqueue ."
+run = """
+#!/usr/bin/env bash
+
+VERSION="$(git describe --tags --always --dirty=-dev)-(#$(git rev-parse --short HEAD))"
+BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+go build -o ./tmp/ytqueue -trimpath -ldflags "-X main.version=$VERSION -X main.buildDate=$BUILD_DATE" .
+"""
 sources = ["**/*.go", "go.mod", "go.sum"]
 
 [tasks.run]
