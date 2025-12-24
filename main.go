@@ -39,7 +39,6 @@ func runApp() int {
 
 	d := newDownloader(cfg)
 	p := tea.NewProgram(newModel(d, cfg), tea.WithAltScreen())
-
 	d.setProgram(p)
 
 	go d.start()
