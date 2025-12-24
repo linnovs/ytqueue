@@ -1,3 +1,6 @@
 package main
 
-var version = "dev"
+var (
+	version   = "dev"
+	buildDate = "unknown"
+)
