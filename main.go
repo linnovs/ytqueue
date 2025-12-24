@@ -11,11 +11,11 @@ import (
 
 const fileperm = 0o600
 
-func main() {
+func runApp() int {
 	logFile, err := xdg.StateFile("ytqueue/ytqueue.log")
 	if err != nil {
 		slog.Error("unable to get log file path", slog.String("error", err.Error()))
-		os.Exit(1)
+		return 1
 	}
 
 	logFile = filepath.Clean(logFile)
@@ -23,7 +23,7 @@ func main() {
 	out, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, fileperm)
 	if err != nil {
 		slog.Error("unable to open log file", slog.String("error", err.Error()))
-		os.Exit(1)
+		return 1
 	}
 
 	handler := slog.NewTextHandler(out, &slog.HandlerOptions{Level: slog.LevelDebug})
@@ -33,10 +33,17 @@ func main() {
 	p := tea.NewProgram(newModel(d), tea.WithAltScreen())
 
 	d.setProgram(p)
+
 	go d.start()
 
 	if _, err := p.Run(); err != nil {
 		slog.Error("application crashed", slog.String("error", err.Error()))
-		os.Exit(1)
+		return 1
 	}
+
+	return 0
+}
+
+func main() {
+	os.Exit(runApp())
 }
