@@ -101,27 +101,31 @@ const (
 	minHeight = 35
 )
 
+func (m appModel) terminalTooSmall() string {
+	message := lipgloss.NewStyle().Bold(true).Render("Terminal size too small")
+	currentSize := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("9")).
+		Render(fmt.Sprintf("%dx%d", m.width, m.height))
+	minimumSize := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("10")).
+		Render(fmt.Sprintf("%dx%d", minWidth, minHeight))
+
+	return lipgloss.NewStyle().
+		Width(m.width).
+		Height(m.height).
+		Align(lipgloss.Center, lipgloss.Center).
+		Render(
+			lipgloss.JoinVertical(
+				lipgloss.Center, message,
+				"Current size: "+currentSize,
+				"Minimum size: "+minimumSize,
+			),
+		)
+}
+
 func (m appModel) View() string {
 	if m.width < minWidth || m.height < minHeight {
-		message := lipgloss.NewStyle().Bold(true).Render("Terminal size too small")
-		currentSize := lipgloss.NewStyle().
-			Foreground(lipgloss.Color("9")).
-			Render(fmt.Sprintf("%dx%d", m.width, m.height))
-		minimumSize := lipgloss.NewStyle().
-			Foreground(lipgloss.Color("10")).
-			Render(fmt.Sprintf("%dx%d", minWidth, minHeight))
-
-		return lipgloss.NewStyle().
-			Width(m.width).
-			Height(m.height).
-			Align(lipgloss.Center, lipgloss.Center).
-			Render(
-				lipgloss.JoinVertical(
-					lipgloss.Center, message,
-					"Current size: "+currentSize,
-					"Minimum size: "+minimumSize,
-				),
-			)
+		return m.terminalTooSmall()
 	}
 
 	var footer string
