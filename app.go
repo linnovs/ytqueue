@@ -58,13 +58,17 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.help.ShowAll = !m.help.ShowAll
 		case key.Matches(msg, m.keymap.quit):
 			return m, m.downloader.quit
-		case key.Matches(msg, m.keymap.next):
 		case key.Matches(msg, m.keymap.prev):
-		case key.Matches(msg, m.keymap.clear):
-			m.urlPrompt.Reset()
+			m.keymap.section = m.keymap.section.prev()
+			cmds = append(cmds, sectionChangedCmd(m.keymap.section))
+		case key.Matches(msg, m.keymap.next):
+			m.keymap.section = m.keymap.section.next()
+			cmds = append(cmds, sectionChangedCmd(m.keymap.section))
+		case key.Matches(msg, m.keymap.prompt.clear):
+			m.urlPrompt.prompt.Reset()
 
 			cmds = append(cmds, errorCmd(nil))
-		case key.Matches(msg, m.keymap.submit):
+		case key.Matches(msg, m.keymap.prompt.submit):
 			filmUrl, err := url.Parse(m.urlPrompt.prompt.Value())
 			if err != nil {
 				return m, errorCmd(err)
@@ -73,7 +77,11 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, errorCmd(nil)) // clear previous error
 			cmds = append(cmds, m.downloader.downloadCmd(filmUrl.String()))
 
-			m.urlPrompt.Reset()
+			m.urlPrompt.prompt.Reset()
+		case key.Matches(msg, m.keymap.datatable.moveUp):
+			m.datatable.MoveUp()
+		case key.Matches(msg, m.keymap.datatable.moveDown):
+			m.datatable.MoveDown()
 		}
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
