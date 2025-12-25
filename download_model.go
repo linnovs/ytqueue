@@ -123,14 +123,14 @@ func (d *downloaderModel) Update(msg tea.Msg) (*downloaderModel, tea.Cmd) {
 		d.status, d.speed, d.elapsed, d.eta = downloadStatusIdle, 0, 0, 0
 		cmds = append(cmds, d.progress.SetPercent(0), d.filename.updateText(""))
 	case downloadProgressMsg:
-		if msg.DownloadedBytes < max(msg.TotalBytes, msg.TotalBytesEst) {
-			d.status = downloadStatusDownloading
-		} else {
-			d.status = downloadStatusFinished
-		}
-
+		d.status = downloadStatusFinished
 		total := max(msg.TotalBytes, msg.TotalBytesEst, 1)
 		downloaded := min(msg.DownloadedBytes, total)
+
+		if downloaded < total {
+			d.status = downloadStatusDownloading
+		}
+
 		d.speed = msg.Speed
 		d.elapsed = msg.Elapsed * float64(time.Second)
 		d.eta = msg.Eta * float64(time.Second)
