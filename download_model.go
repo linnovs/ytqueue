@@ -95,7 +95,7 @@ func newDownloaderModel(downloadDir string) *downloaderModel {
 		titleBarStyle:  titleBarStyle,
 		inqueueStyle:   inqueueStyle,
 		queueSizeStyle: queueSizeStyle,
-		filename:       newRunningTextModel("", defaultFilenameWidth, filenameStyle),
+		filename:       newRunningTextModel(defaultFilenameWidth, filenameStyle),
 		statusStyle:    statusStyle,
 		etaStyle:       etaStyle,
 		style:          style,
@@ -120,8 +120,8 @@ func (d *downloaderModel) Update(msg tea.Msg) (*downloaderModel, tea.Cmd) {
 		d.status = downloadStatusReady
 	case finishDownloadMsg:
 		d.queued--
-		d.status, d.filename.text, d.speed, d.elapsed, d.eta = downloadStatusIdle, "", 0, 0, 0
-		cmds = append(cmds, d.progress.SetPercent(0))
+		d.status, d.speed, d.elapsed, d.eta = downloadStatusIdle, 0, 0, 0
+		cmds = append(cmds, d.progress.SetPercent(0), d.filename.updateText(""))
 	case downloadProgressMsg:
 		if msg.DownloadedBytes < max(msg.TotalBytes, msg.TotalBytesEst) {
 			d.status = downloadStatusDownloading
@@ -131,12 +131,12 @@ func (d *downloaderModel) Update(msg tea.Msg) (*downloaderModel, tea.Cmd) {
 
 		total := max(msg.TotalBytes, msg.TotalBytesEst, 1)
 		downloaded := min(msg.DownloadedBytes, total)
-		d.filename.text = path.Base(msg.Filename)
 		d.speed = msg.Speed
 		d.elapsed = msg.Elapsed * float64(time.Second)
 		d.eta = msg.Eta * float64(time.Second)
+		filename := path.Base(msg.Filename)
 		percent := downloaded / total
-		cmds = append(cmds, d.progress.SetPercent(percent))
+		cmds = append(cmds, d.progress.SetPercent(percent), d.filename.updateText(filename))
 	case progress.FrameMsg:
 		progressModel, cmd := d.progress.Update(msg)
 		cmds = append(cmds, cmd)

@@ -1,10 +1,13 @@
 package main
 
 import (
+	"strings"
 	"time"
+	"unicode/utf8"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/mattn/go-runewidth"
 )
 
 type runningTextTickMsg struct{}
@@ -17,15 +20,27 @@ func doRunningTextTickCmd() tea.Cmd {
 	})
 }
 
-type runningTextModel struct {
-	style  lipgloss.Style
-	text   string
-	width  int
-	offset int
+type runningTextFullTextUpdateMsg struct {
+	text string
 }
 
-func newRunningTextModel(text string, width int, style lipgloss.Style) *runningTextModel {
-	return &runningTextModel{text: text, width: width, style: style}
+type runningTextModel struct {
+	style    lipgloss.Style
+	fullText []rune
+	textLen  int
+	width    int
+	offset   int
+}
+
+const emptyRunningText = "     "
+
+func newRunningTextModel(width int, style lipgloss.Style) *runningTextModel {
+	return &runningTextModel{
+		fullText: []rune{' '},
+		textLen:  1,
+		width:    width,
+		style:    style,
+	}
 }
 
 func (r *runningTextModel) Init() tea.Cmd {
@@ -35,17 +50,36 @@ func (r *runningTextModel) Init() tea.Cmd {
 func (r *runningTextModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
-	if _, ok := msg.(runningTextTickMsg); ok {
-		r.offset = (r.offset + 1) % max(len(r.text), r.width)
+	switch msg := msg.(type) {
+	case runningTextFullTextUpdateMsg:
+		r.fullText = []rune(msg.text + emptyRunningText + msg.text)
+		r.textLen = utf8.RuneCountInString(msg.text + emptyRunningText)
+	case runningTextTickMsg:
+		r.offset = (r.offset + 1) % r.textLen
 		cmd = doRunningTextTickCmd()
 	}
 
 	return r, cmd
 }
 
-func (r *runningTextModel) View() string {
-	fullText := []rune(r.text + "     " + r.text)
-	display := string(fullText[r.offset : r.offset+r.width])
+func (r *runningTextModel) updateText(text string) tea.Cmd {
+	return func() tea.Msg {
+		return runningTextFullTextUpdateMsg{text: text}
+	}
+}
 
-	return r.style.Render(display)
+func (r *runningTextModel) View() string {
+	width := 0
+	var display strings.Builder
+
+	for _, ch := range r.fullText[r.offset:] {
+		width += runewidth.RuneWidth(ch)
+		if width > r.width {
+			break
+		}
+
+		display.WriteRune(ch)
+	}
+
+	return r.style.Width(r.width + r.style.GetHorizontalPadding()).Render(display.String())
 }
