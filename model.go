@@ -123,45 +123,62 @@ func (m appModel) terminalTooSmall() string {
 		)
 }
 
+func (m appModel) footerView() string {
+	helpView := m.help.View(m.keymap)
+
+	var footerItem []string
+
+	if m.err != nil {
+		footerItem = append(footerItem, m.errorStyle.Render(fmt.Sprintf("Error: %s", m.err)))
+	}
+
+	if m.footerMsg != "" {
+		footerItem = append(footerItem, m.errorStyle.Render(m.footerMsg))
+	}
+
+	if helpView != "" {
+		footerItem = append(footerItem, helpView)
+	}
+
+	if len(footerItem) != 0 {
+		return lipgloss.JoinVertical(lipgloss.Center, footerItem...)
+	}
+
+	return ""
+}
+
 func (m appModel) View() string {
 	if m.width < minWidth || m.height < minHeight {
 		return m.terminalTooSmall()
 	}
 
-	var footer string
-	if m.err != nil {
-		footer = m.errorStyle.Render(fmt.Sprintf("Error: %s", m.err))
-	} else if m.footerMsg != "" {
-		footer = m.errorStyle.Render(m.footerMsg)
-	}
-
 	topbar := m.topbar.View()
 	urlPrompt := m.urlPrompt.View()
 	downloaderView := m.downloaderModel.View()
-	helpView := m.help.View(m.keymap)
+	footerView := m.footerView()
 
 	h := lipgloss.Height
 
 	topbarHeight := h(topbar)
 	urlPromptHeight := h(urlPrompt)
 	downloaderViewHeight := h(downloaderView)
-	helpViewHeight := h(helpView)
-	footerHeight := h(footer)
+	footerHeight := h(footerView)
+
+	if footerView == "" {
+		footerHeight = 0
+	}
 
 	heightAdjusted := m.height - topbarHeight
-	heightAdjusted -= urlPromptHeight + downloaderViewHeight + helpViewHeight + footerHeight
+	heightAdjusted -= urlPromptHeight + downloaderViewHeight + footerHeight
 	heightAdjusted -= m.datatable.style.GetVerticalBorderSize()
 
 	m.datatable.style = m.datatable.style.Height(heightAdjusted)
 	dataTable := m.datatable.View()
 
-	return lipgloss.JoinVertical(
-		lipgloss.Center,
-		topbar,
-		urlPrompt,
-		dataTable,
-		downloaderView,
-		helpView,
-		footer,
-	)
+	verticalItems := []string{topbar, urlPrompt, dataTable, downloaderView}
+	if footerView != "" {
+		verticalItems = append(verticalItems, footerView)
+	}
+
+	return lipgloss.JoinVertical(lipgloss.Center, verticalItems...)
 }
