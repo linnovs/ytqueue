@@ -34,7 +34,8 @@ func runApp() int {
 
 	defer cleanupTempDir(cfg.tempDir)
 
-	if err := migrateDB(); err != nil {
+	db, err := openAndMigrateDB()
+	if err != nil {
 		slog.Error("database migration failed", slog.String("error", err.Error()))
 		return 1
 	}
@@ -43,7 +44,8 @@ func runApp() int {
 	slog.SetDefault(slog.New(handler))
 
 	d := newDownloader(cfg)
-	p := tea.NewProgram(newModel(d, cfg), tea.WithAltScreen())
+	t := newDatatable(db)
+	p := tea.NewProgram(newModel(d, t, cfg), tea.WithAltScreen())
 	d.setProgram(p)
 
 	go d.start()

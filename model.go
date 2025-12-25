@@ -26,7 +26,7 @@ type appModel struct {
 	footerMsg       string
 }
 
-func newModel(d *downloader, cfg *config) appModel {
+func newModel(d *downloader, t *datatable, cfg *config) appModel {
 	return appModel{
 		keymap:          newKeymap(),
 		help:            help.New(),
@@ -34,7 +34,7 @@ func newModel(d *downloader, cfg *config) appModel {
 		topbar:          newTopbar(),
 		downloader:      d,
 		downloaderModel: newDownloaderModel(cfg.DownloadPath),
-		datatable:       newDatatable(),
+		datatable:       t,
 		errorStyle:      newErrorStyle(),
 	}
 }

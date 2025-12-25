@@ -1,6 +1,9 @@
 package main
 
 import (
+	"database/sql"
+
+	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -10,7 +13,7 @@ type datatable struct {
 	width int
 }
 
-func newDatatable() *datatable {
+func newDatatable(db *sql.DB) *datatable {
 	style := lipgloss.NewStyle().Border(lipgloss.RoundedBorder())
 
 	return &datatable{style: style}
