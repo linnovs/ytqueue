@@ -114,7 +114,7 @@ func (d *downloaderModel) Update(msg tea.Msg) (*downloaderModel, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		d.width = msg.Width - d.style.GetHorizontalBorderSize()
+		d.width = msg.Width - d.style.GetHorizontalFrameSize()
 	case enqueueDownloadMsg:
 		d.queued++
 		d.status = downloadStatusReady
