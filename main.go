@@ -18,7 +18,22 @@ func runApp() int {
 		return 1
 	}
 
+	teaLogFile, err := xdg.StateFile("ytqueue/tea.log")
+	if err != nil {
+		slog.Error("unable to get tea log file path", slog.String("error", err.Error()))
+		return 1
+	}
+
 	logFile = filepath.Clean(logFile)
+	teaLogFile = filepath.Clean(teaLogFile)
+
+	teaLog, err := tea.LogToFile(teaLogFile, "")
+	if err != nil {
+		slog.Error("unable to open tea log file", slog.String("error", err.Error()))
+		return 1
+	}
+
+	defer teaLog.Close() // nolint:errcheck
 
 	out, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, fileperm)
 	if err != nil {
