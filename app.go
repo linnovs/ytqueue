@@ -178,9 +178,8 @@ func (m appModel) View() string {
 
 	heightAdjusted := m.height - topbarHeight
 	heightAdjusted -= urlPromptHeight + downloaderViewHeight + footerHeight
-	heightAdjusted -= m.datatable.style.GetVerticalBorderSize()
 
-	m.datatable.style = m.datatable.style.Height(heightAdjusted)
+	m.datatable.setHeight(heightAdjusted)
 	dataTable := m.datatable.View()
 
 	verticalItems := []string{topbar, urlPrompt, dataTable, downloaderView}

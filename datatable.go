@@ -1,119 +1,184 @@
 package main
 
 import (
-	"database/sql"
+	"context"
+	"strings"
 
-	"github.com/charmbracelet/bubbles/table"
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/linnovs/ytqueue/database"
+	"github.com/mattn/go-runewidth"
 )
 
-type datatable struct {
-	style       lipgloss.Style
-	table       table.Model
-	tableStyle  table.Styles
-	width       int
-	queries     *database.Queries
-	rows        []table.Row
-	selectedRow int
+func clamp(n, low, high int) int {
+	return min(max(n, low), high)
 }
 
-func newDatatable(db *sql.DB) *datatable {
-	style := lipgloss.NewStyle().Border(lipgloss.RoundedBorder())
-	s := table.DefaultStyles()
-	s.Selected = s.Selected.Foreground(lipgloss.Color("229")).
-		Background(lipgloss.Color("236")).
-		Bold(true)
-	t := table.New(
-		table.WithColumns([]table.Column{
-			{Title: "Name", Width: 20},
-			{Title: "URL", Width: 100},
-			{Title: "Path", Width: 20},
-			{Title: "Watched", Width: 20},
-		}),
-		table.WithFocused(false),
-		table.WithStyles(s),
-	)
+type column string
 
-	queries := database.New(db)
+const (
+	colWatched  column = "Watched"
+	colName     column = "Name"
+	colURL      column = "URL"
+	colLocation column = "Location"
+)
 
-	// Sample data for demonstration
-	rows := []table.Row{
-		{"Video 1", "https://example.com/1", "/path/to/1.mp4", "No"},
-		{"Video 2", "https://example.com/2", "/path/to/2.mp4", "Yes"},
-		{"Video 3", "https://example.com/3", "/path/to/3.mp4", "No"},
+type row map[column]string
+
+type datatable struct {
+	width              int
+	widths             map[column]int
+	datastore          *datastore
+	viewport           viewport.Model
+	styles             lipgloss.Style
+	headerStyle        lipgloss.Style
+	selectedRowStyle   lipgloss.Style
+	focusedBGColor     lipgloss.Color
+	columns            []column
+	rows               []row
+	cursor, start, end int
+	isFocused          bool
+}
+
+func newDatatable(ds *datastore) *datatable {
+	// minus topbar, urlPrompt, downloaderView, datatable's header (include borders)
+	const defaultViewportHeight = minHeight - 1 - 3 - 4 - 4
+
+	styles := lipgloss.NewStyle().Border(lipgloss.RoundedBorder())
+	d := &datatable{
+		widths:      make(map[column]int),
+		datastore:   ds,
+		viewport:    viewport.New(0, defaultViewportHeight),
+		headerStyle: lipgloss.NewStyle().Bold(true),
+		selectedRowStyle: lipgloss.NewStyle().
+			Background(lipgloss.Color("244")).
+			Foreground(lipgloss.Color("229")),
+		focusedBGColor: lipgloss.Color("141"),
+		styles:         styles,
+		columns:        []column{colWatched, colName, colURL, colLocation},
+		cursor:         0,
 	}
-	t.SetRows(rows)
 
-	return &datatable{
-		style:       style,
-		tableStyle:  s,
-		table:       t,
-		queries:     queries,
-		rows:        rows,
-		selectedRow: 0,
+	return d
+}
+
+const dtCellPadding = 1
+
+func (d *datatable) calculateColWidth() {
+	const colPadding = dtCellPadding * 2 // padding left and right
+	const isWatchedColWidth = 7
+	adjustedWidth := d.width - (colPadding * len(d.columns)) - isWatchedColWidth // exclude isWatched
+	defaultWidth := (adjustedWidth) / (len(d.columns) - 1)                       // exclude isWatched
+	d.widths[colName] = defaultWidth + colPadding
+	d.widths[colURL] = defaultWidth + colPadding
+	d.widths[colLocation] = defaultWidth + colPadding
+	d.widths[colWatched] = isWatchedColWidth + colPadding
+}
+
+func (d *datatable) updateViewport() {
+	renderedRows := make([]string, 0, len(d.rows))
+
+	if d.cursor >= 0 {
+		d.start = clamp(d.cursor-d.viewport.Height, 0, d.cursor)
+	} else {
+		d.start = 0
 	}
+
+	d.end = clamp(d.start+d.viewport.Height, d.cursor, len(d.rows))
+
+	for i := d.start; i < d.end; i++ {
+		renderedRows = append(renderedRows, d.renderRow(i))
+	}
+
+	d.viewport.SetContent(lipgloss.JoinVertical(lipgloss.Left, renderedRows...))
+}
+
+func (d *datatable) setRows(rows []row) {
+	d.rows = rows
+	d.updateViewport()
 }
 
 func (d *datatable) Init() tea.Cmd {
-	return nil
+	return func() tea.Msg {
+		ctx := context.Background()
+
+		videos, err := d.datastore.getVideos(ctx)
+		if err != nil {
+			return errorMsg{err: err}
+		}
+
+		d.setRows(videosToRows(videos))
+
+		return nil
+	}
 }
 
 func (d *datatable) Update(msg tea.Msg) (*datatable, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		d.width = msg.Width - d.style.GetHorizontalFrameSize()
+		d.width = msg.Width - d.styles.GetHorizontalFrameSize()
+		d.viewport.Width = d.width
+		d.calculateColWidth()
 	case sectionChangedMsg:
 		if msg.section == sectionDatatable {
-			d.table.Focus()
-			d.tableStyle.Selected = d.tableStyle.Selected.Background(lipgloss.Color("57"))
+			d.isFocused = true
 		} else {
-			d.table.Blur()
-			d.tableStyle.Selected = d.tableStyle.Selected.Background(lipgloss.Color("236"))
+			d.isFocused = false
+		}
+	}
+
+	return d, nil
+}
+
+func (d *datatable) setHeight(height int) {
+	height -= d.styles.GetVerticalFrameSize()
+	d.styles = d.styles.Height(height)
+	d.updateViewport()
+}
+
+func (d *datatable) renderHeader() string {
+	var s strings.Builder
+
+	for _, col := range d.columns {
+		style := lipgloss.NewStyle().Width(d.widths[col]).Padding(0, dtCellPadding)
+		s.WriteString(style.Render(string(col)))
+	}
+
+	return lipgloss.NewStyle().
+		Border(lipgloss.NormalBorder(), false, false, true).
+		Render(s.String())
+}
+
+func (d *datatable) renderRow(r int) string {
+	var s strings.Builder
+
+	for _, colKey := range d.columns {
+		colValue := d.rows[r][colKey]
+		style := lipgloss.NewStyle().Width(d.widths[colKey]).Padding(0, dtCellPadding)
+
+		if colKey == colWatched {
+			style = style.Align(lipgloss.Center)
 		}
 
-		d.table.SetStyles(d.tableStyle)
+		cellWidth := d.widths[colKey] - style.GetHorizontalFrameSize()
+		s.WriteString(style.Render(runewidth.Truncate(colValue, cellWidth, "…")))
 	}
 
-	var cmd tea.Cmd
-	d.table, cmd = d.table.Update(msg)
-	d.selectedRow = d.table.Cursor()
+	if r == d.cursor {
+		if d.isFocused {
+			return d.selectedRowStyle.Background(d.focusedBGColor).Render(s.String())
+		}
 
-	return d, cmd
-}
-
-func (d *datatable) SetRows(rows []table.Row) {
-	d.rows = rows
-	d.table.SetRows(rows)
-}
-
-func (d *datatable) MoveUp() {
-	if !d.table.Focused() {
-		return
+		return d.selectedRowStyle.Render(s.String())
 	}
 
-	if d.selectedRow > 0 {
-		d.rows[d.selectedRow], d.rows[d.selectedRow-1] = d.rows[d.selectedRow-1], d.rows[d.selectedRow]
-		d.selectedRow--
-		d.table.SetRows(d.rows)
-		d.table.SetCursor(d.selectedRow)
-	}
-}
-
-func (d *datatable) MoveDown() {
-	if !d.table.Focused() {
-		return
-	}
-
-	if d.selectedRow < len(d.rows)-1 {
-		d.rows[d.selectedRow], d.rows[d.selectedRow+1] = d.rows[d.selectedRow+1], d.rows[d.selectedRow]
-		d.selectedRow++
-		d.table.SetRows(d.rows)
-		d.table.SetCursor(d.selectedRow)
-	}
+	return s.String()
 }
 
 func (d *datatable) View() string {
-	return d.style.Width(d.width).Render(d.table.View())
+	header := d.renderHeader()
+	d.viewport.Height = d.styles.GetHeight() - lipgloss.Height(header)
+	content := lipgloss.JoinVertical(lipgloss.Top, header, d.viewport.View())
+
+	return d.styles.Width(d.width).Render(content)
 }

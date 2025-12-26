@@ -22,7 +22,7 @@ type downloader struct {
 	wg          *sync.WaitGroup
 }
 
-func newDownloader(cfg *config) *downloader {
+func newDownloader(cfg *config, ds *datastore) *downloader {
 	const queueSize = 100
 	q := make(chan string, queueSize)
 	closeCh := make(chan struct{})
