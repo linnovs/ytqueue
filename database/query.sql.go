@@ -10,7 +10,7 @@ import (
 )
 
 const getVideos = `-- name: GetVideos :many
-SELECT id, name, url, file_path, is_watched, order_index, created_at FROM videos ORDER BY order_index DESC
+SELECT id, name, url, location, is_watched, order_index, created_at FROM videos ORDER BY order_index DESC
 `
 
 func (q *Queries) GetVideos(ctx context.Context) ([]Video, error) {
@@ -26,7 +26,7 @@ func (q *Queries) GetVideos(ctx context.Context) ([]Video, error) {
 			&i.ID,
 			&i.Name,
 			&i.Url,
-			&i.FilePath,
+			&i.Location,
 			&i.IsWatched,
 			&i.OrderIndex,
 			&i.CreatedAt,

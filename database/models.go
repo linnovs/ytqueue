@@ -9,11 +9,11 @@ import (
 )
 
 type Video struct {
-	ID         interface{} `json:"id"`
-	Name       string      `json:"name"`
-	Url        string      `json:"url"`
-	FilePath   string      `json:"filePath"`
-	IsWatched  *bool       `json:"isWatched"`
-	OrderIndex *time.Time  `json:"orderIndex"`
-	CreatedAt  *time.Time  `json:"createdAt"`
+	ID         int64      `json:"id"`
+	Name       string     `json:"name"`
+	Url        string     `json:"url"`
+	Location   string     `json:"location"`
+	IsWatched  *bool      `json:"isWatched"`
+	OrderIndex *time.Time `json:"orderIndex"`
+	CreatedAt  *time.Time `json:"createdAt"`
 }
