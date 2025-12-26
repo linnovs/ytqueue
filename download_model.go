@@ -29,12 +29,12 @@ type downloadProgressMsg struct {
 type downloadStatus int
 
 func (s downloadStatus) String() string {
-	return [...]string{"IDLE", "READY", "DOWNLOADING", "FINISHED", "ERROR"}[s]
+	return [...]string{"IDLE", "PREPARING", "DOWNLOADING", "FINISHED", "ERROR"}[s]
 }
 
 const (
 	downloadStatusIdle downloadStatus = iota
-	downloadStatusReady
+	downloadStatusPreparing
 	downloadStatusDownloading
 	downloadStatusFinished
 	downloadStatusError
@@ -117,7 +117,7 @@ func (d *downloaderModel) Update(msg tea.Msg) (*downloaderModel, tea.Cmd) {
 		d.width = msg.Width - d.style.GetHorizontalFrameSize()
 	case enqueueDownloadMsg:
 		d.queued++
-		d.status = downloadStatusReady
+		d.status = downloadStatusPreparing
 	case finishDownloadMsg:
 		d.queued--
 		d.status, d.speed, d.elapsed, d.eta = downloadStatusIdle, 0, 0, 0
