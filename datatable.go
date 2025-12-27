@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"strings"
+	"sync"
 
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
@@ -18,6 +19,7 @@ func clamp(n, low, high int) int {
 type column string
 
 const (
+	colID       column = "ID"
 	colWatched  column = "Watched"
 	colName     column = "Name"
 	colURL      column = "URL"
@@ -37,9 +39,11 @@ type datatable struct {
 	focusedBGColor   lipgloss.Color
 	keymap           datatableKeymap
 	columns          []column
+	rowMu            sync.RWMutex
 	rows             []row
 	cursor           int
 	isFocused        bool
+	deleteConfirm    bool
 }
 
 func newDatatable(db *sql.DB) *datatable {
@@ -79,6 +83,9 @@ func (d *datatable) calculateColWidth() {
 }
 
 func (d *datatable) updateViewport() {
+	d.rowMu.RLock()
+	defer d.rowMu.RUnlock()
+
 	renderedRows := make([]string, 0, len(d.rows))
 	for i := range d.rows {
 		renderedRows = append(renderedRows, d.renderRow(i))
@@ -88,7 +95,10 @@ func (d *datatable) updateViewport() {
 }
 
 func (d *datatable) setRows(rows []row) {
+	d.rowMu.Lock()
 	d.rows = rows
+	d.rowMu.Unlock()
+
 	d.updateViewport()
 }
 
@@ -121,6 +131,21 @@ func (d *datatable) newVideoCmd(name, url, location string) tea.Cmd {
 	}
 }
 
+func (d *datatable) deleteCurrentRow(cursor int) tea.Cmd {
+	return func() tea.Msg {
+		row := d.rows[cursor]
+		rows := append(d.rows[:cursor], d.rows[cursor+1:]...)
+
+		if err := d.datastore.deleteVideo(context.Background(), row[colID]); err != nil {
+			return errorMsg{err}
+		}
+
+		d.setRows(rows)
+
+		return nil
+	}
+}
+
 func (d *datatable) Update(msg tea.Msg) (*datatable, tea.Cmd) {
 	var cmd tea.Cmd
 
@@ -139,7 +164,7 @@ func (d *datatable) Update(msg tea.Msg) (*datatable, tea.Cmd) {
 			d.styles = d.styles.UnsetBorderForeground()
 		}
 	case tea.KeyMsg:
-		d.keyMsgHandler(msg)
+		cmd = d.keyMsgHandler(msg)
 	}
 
 	return d, cmd
@@ -166,6 +191,15 @@ func (d *datatable) renderHeader() string {
 
 func (d *datatable) renderRow(r int) string {
 	var s strings.Builder
+
+	if d.deleteConfirm && r == d.cursor {
+		return lipgloss.NewStyle().
+			Width(d.width).
+			Align(lipgloss.Center).
+			Foreground(lipgloss.Color("0")).
+			Background(lipgloss.Color("9")).
+			Render("Delete this row? (press 'x' again to confirm, 'esc' to cancel)")
+	}
 
 	for _, colKey := range d.columns {
 		colValue := d.rows[r][colKey]

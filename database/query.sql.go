@@ -34,6 +34,15 @@ func (q *Queries) AddVideo(ctx context.Context, arg AddVideoParams) (Video, erro
 	return i, err
 }
 
+const deleteVideo = `-- name: DeleteVideo :exec
+DELETE FROM videos WHERE id = ?
+`
+
+func (q *Queries) DeleteVideo(ctx context.Context, id int64) error {
+	_, err := q.exec(ctx, q.deleteVideoStmt, deleteVideo, id)
+	return err
+}
+
 const getVideos = `-- name: GetVideos :many
 SELECT id, name, url, location, is_watched, order_index, created_at FROM videos ORDER BY order_index DESC
 `

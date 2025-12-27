@@ -18,11 +18,13 @@ func (d *datatable) scrollDown() {
 }
 
 func (d *datatable) lineUp(n int) {
+	d.deleteConfirm = false
 	d.cursor = clamp(d.cursor-n, 0, len(d.rows)-1)
 	d.scrollUp()
 }
 
 func (d *datatable) lineDown(n int) {
+	d.deleteConfirm = false
 	d.cursor = clamp(d.cursor+n, 0, len(d.rows)-1)
 	d.scrollDown()
 }
@@ -71,12 +73,16 @@ func (d *datatable) moveDown() {
 	d.updateViewport()
 }
 
-func (d *datatable) keyMsgHandler(msg tea.KeyMsg) {
+func (d *datatable) keyMsgHandler(msg tea.KeyMsg) tea.Cmd {
+	var cmd tea.Cmd
+
 	if !d.isFocused {
-		return
+		return cmd
 	}
 
 	switch {
+	case key.Matches(msg, key.NewBinding(key.WithKeys("esc"))):
+		d.deleteConfirm = false
 	case key.Matches(msg, d.keymap.lineUp):
 		d.lineUp(1)
 	case key.Matches(msg, d.keymap.lineDown):
@@ -97,5 +103,13 @@ func (d *datatable) keyMsgHandler(msg tea.KeyMsg) {
 		d.moveUp()
 	case key.Matches(msg, d.keymap.moveDown):
 		d.moveDown()
+	case key.Matches(msg, d.keymap.deleteRow):
+		if d.deleteConfirm {
+			cmd = d.deleteCurrentRow(d.cursor)
+		}
+
+		d.deleteConfirm = !d.deleteConfirm
 	}
+
+	return cmd
 }

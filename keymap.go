@@ -43,6 +43,7 @@ type datatableKeymap struct {
 	lineUp, lineDown, moveUp, moveDown         key.Binding
 	pageUp, pageDown, halfPageUp, halfPageDown key.Binding
 	gotoTop, gotoBottom                        key.Binding
+	deleteRow                                  key.Binding
 }
 
 func (d datatableKeymap) ShortHelp() []key.Binding {
@@ -55,6 +56,7 @@ func (d datatableKeymap) FullHelp() [][]key.Binding {
 		{d.lineUp, d.lineDown, d.moveUp, d.moveDown},
 		{d.pageUp, d.pageDown, d.halfPageUp, d.halfPageDown},
 		{d.gotoTop, d.gotoBottom},
+		{d.deleteRow},
 	}
 }
 
@@ -108,5 +110,6 @@ func newDatatableKeymap() datatableKeymap {
 		),
 		gotoTop:    key.NewBinding(key.WithKeys("g"), key.WithHelp("g", "go to top")),
 		gotoBottom: key.NewBinding(key.WithKeys("G"), key.WithHelp("G", "go to bottom")),
+		deleteRow:  key.NewBinding(key.WithKeys("x"), key.WithHelp("x", "delete row")),
 	}
 }

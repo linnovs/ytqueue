@@ -3,6 +3,9 @@ package main
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"log/slog"
+	"strconv"
 
 	"github.com/linnovs/ytqueue/database"
 )
@@ -17,6 +20,7 @@ func boolToYesNo(b bool) string {
 
 func videoToRow(v database.Video) row {
 	return row{
+		colID:       fmt.Sprint(v.ID),
 		colName:     v.Name,
 		colURL:      v.Url,
 		colLocation: v.Location,
@@ -65,6 +69,17 @@ func (s *datastore) addVideo(
 	}
 
 	return &video, nil
+}
+
+func (s *datastore) deleteVideo(ctx context.Context, idStr string) error {
+	id, err := strconv.ParseInt(idStr, 10, 0)
+	if err != nil {
+		return err
+	}
+
+	slog.Debug("deleting video", slog.Int64("id", id))
+
+	return s.queries.DeleteVideo(ctx, id)
 }
 
 func (s *datastore) Close() error {
