@@ -2,13 +2,15 @@
 run = """
 #!/usr/bin/env bash
 
+BUILDDATE=$(date +%Y-%m-%dT%H:%M:%SZ)
+
 go generate
-go build -o ./tmp/ytqueue -trimpath
+go build -o ./tmp/ytqueue -trimpath -ldflags "-X main.buildDate=${BUILDDATE}"
 """
 sources = ["**/*.go", "go.mod", "go.sum"]
 
 [tasks.run]
-run = '''
+run = """
 #!/usr/bin/env bash
 
 while true; do
@@ -20,7 +22,7 @@ while true; do
         break
     fi
 done
-'''
+"""
 
 [tasks.generate]
 run = "sqlc generate"
