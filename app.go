@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"net/url"
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
@@ -13,6 +12,7 @@ import (
 type waitingMsg struct{}
 
 type appModel struct {
+	section         sectionType
 	keymap          keymap
 	width, height   int
 	help            help.Model
@@ -28,9 +28,10 @@ type appModel struct {
 
 func newModel(d *downloader, t *datatable, cfg *config) appModel {
 	return appModel{
+		section:         sectionURLPrompt,
 		keymap:          newKeymap(),
 		help:            help.New(),
-		urlPrompt:       newURLPrompt(),
+		urlPrompt:       newURLPrompt(d),
 		topbar:          newTopbar(),
 		downloader:      d,
 		downloaderModel: newDownloaderModel(cfg.DownloadPath),
@@ -59,11 +60,11 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, m.keymap.quit):
 			return m, m.downloader.quit
 		case key.Matches(msg, m.keymap.prev):
-			m.keymap.section = m.keymap.section.prev()
-			cmds = append(cmds, sectionChangedCmd(m.keymap.section))
+			m.section = m.section.prev()
+			cmds = append(cmds, sectionChangedCmd(m.section))
 		case key.Matches(msg, m.keymap.next):
-			m.keymap.section = m.keymap.section.next()
-			cmds = append(cmds, sectionChangedCmd(m.keymap.section))
+			m.section = m.section.next()
+			cmds = append(cmds, sectionChangedCmd(m.section))
 		case key.Matches(msg, m.keymap.prompt.clear):
 			m.urlPrompt.prompt.Reset()
 
@@ -134,7 +135,16 @@ func (m appModel) terminalTooSmall() string {
 }
 
 func (m appModel) footerView() string {
-	helpView := m.help.View(m.keymap)
+	var keymap help.KeyMap
+
+	switch m.section {
+	case sectionURLPrompt:
+		keymap = m.keymap.prompt
+	case sectionDatatable:
+		keymap = m.keymap.datatable
+	}
+
+	helpView := m.help.View(keymap)
 
 	var footerItem []string
 
