@@ -46,7 +46,7 @@ func (t topbar) View() string {
 	w := lipgloss.Width
 
 	title := t.titleStyle.Render()
-	version := t.versionStyle.Render(fmt.Sprintf("%s-%s", version, buildDate))
+	version := t.versionStyle.Render(fmt.Sprintf("%s-(#%s)-%s", version, commit, buildDate))
 	helpText := t.helpTextStyle.Render()
 	spacing := t.topbarStyle.Width(t.width - w(title) - w(version) - w(helpText)).Render()
 
