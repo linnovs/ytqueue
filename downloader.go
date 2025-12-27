@@ -28,7 +28,7 @@ func newDownloader(cfg *config) *downloader {
 	const queueSize = 100
 	q := make(chan string, queueSize)
 	closeCh := make(chan struct{})
-	wg := &sync.WaitGroup{}
+	wg := new(sync.WaitGroup)
 
 	return &downloader{nil, cfg.DownloadPath, cfg.tempDir, q, closeCh, wg}
 }
@@ -137,16 +137,12 @@ func (d *downloader) download(ctx context.Context, url string) {
 	}
 }
 
-func (d *downloader) downloadCmd(url string) tea.Cmd {
-	return func() tea.Msg {
-		if url == "" {
-			return nil
-		}
-
-		d.queue <- url
-
-		return enqueueDownloadMsg{url}
+func (d *downloader) enqueue(url string) {
+	if url == "" {
+		return
 	}
+
+	d.queue <- url
 }
 
 func (d *downloader) startDownload(ctx context.Context, url string) {

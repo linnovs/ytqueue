@@ -50,9 +50,9 @@ func (m appModel) Init() tea.Cmd {
 	)
 }
 
-func (m appModel) quit() tea.Cmd {
+func quitCmd(d *downloader) tea.Cmd {
 	return func() tea.Msg {
-		m.downloader.stop()
+		d.stop()
 		return tea.Quit()
 	}
 }
@@ -66,7 +66,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, m.keymap.help):
 			m.help.ShowAll = !m.help.ShowAll
 		case key.Matches(msg, m.keymap.quit):
-			return m, m.quit()
+			return m, quitCmd(m.downloader)
 		case key.Matches(msg, m.keymap.prev):
 			m.section = m.section.prev()
 			cmds = append(cmds, sectionChangedCmd(m.section))
@@ -74,6 +74,8 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.section = m.section.next()
 			cmds = append(cmds, sectionChangedCmd(m.section))
 		}
+	case submitURLMsg:
+		cmds = append(cmds, enqueueURLCmd(m.downloader, msg.url))
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
 	case waitingMsg:

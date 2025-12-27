@@ -9,7 +9,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-type enqueueURLMsg struct {
+type submitURLMsg struct {
 	url string
 }
 
@@ -33,9 +33,9 @@ func (p *urlPrompt) Init() tea.Cmd {
 	return textinput.Blink
 }
 
-func (p *urlPrompt) enqueueURLCmd(url string) tea.Cmd {
+func (p *urlPrompt) submitURLCmd(url string) tea.Cmd {
 	return func() tea.Msg {
-		return enqueueURLMsg{url}
+		return submitURLMsg{url}
 	}
 }
 
@@ -62,7 +62,7 @@ func (p *urlPrompt) Update(msg tea.Msg) (*urlPrompt, tea.Cmd) {
 				return p, errorCmd(err)
 			}
 
-			cmds = append(cmds, p.enqueueURLCmd(filmUrl.String()))
+			cmds = append(cmds, p.submitURLCmd(filmUrl.String()))
 
 			p.prompt.Reset()
 		}
