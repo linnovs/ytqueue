@@ -33,7 +33,7 @@ func (p *urlPrompt) Init() tea.Cmd {
 	return textinput.Blink
 }
 
-func (p *urlPrompt) submitURLCmd(url string) tea.Cmd {
+func submitURLCmd(url string) tea.Cmd {
 	return func() tea.Msg {
 		return submitURLMsg{url}
 	}
@@ -62,7 +62,7 @@ func (p *urlPrompt) Update(msg tea.Msg) (*urlPrompt, tea.Cmd) {
 				return p, errorCmd(err)
 			}
 
-			cmds = append(cmds, p.submitURLCmd(filmUrl.String()))
+			cmds = append(cmds, submitURLCmd(filmUrl.String()))
 
 			p.prompt.Reset()
 		}
