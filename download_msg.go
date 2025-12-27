@@ -2,13 +2,15 @@ package main
 
 import tea "github.com/charmbracelet/bubbletea"
 
-type downloadQueuedMsg struct{}
+type downloadQueuedMsg struct {
+	url string
+}
 
 func enqueueURLCmd(d *downloader, url string) tea.Cmd {
 	return func() tea.Msg {
 		d.enqueue(url)
 
-		return downloadQueuedMsg{}
+		return downloadQueuedMsg{url}
 	}
 }
 
