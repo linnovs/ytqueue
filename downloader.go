@@ -43,11 +43,8 @@ func (d *downloader) readStdout(stdoutPipe io.ReadCloser) {
 	for scanner.Scan() {
 		var msg downloadProgressMsg
 		if err := json.Unmarshal(scanner.Bytes(), &msg); err != nil {
-			d.p.Send(
-				errorMsg{
-					err: fmt.Errorf("[downloader] failed to unmarshal progress message: %w", err),
-				},
-			)
+			err := fmt.Errorf("[downloader] failed to unmarshal progress message: %w", err)
+			d.p.Send(errorMsg{err})
 
 			continue
 		}
@@ -60,7 +57,8 @@ func (d *downloader) readStderr(stderrPipe io.ReadCloser) {
 	scanner := bufio.NewScanner(stderrPipe)
 
 	for scanner.Scan() {
-		d.p.Send(errorMsg{err: fmt.Errorf("[downloader] %s", scanner.Text())})
+		err := fmt.Errorf("[downloader] %s", scanner.Text())
+		d.p.Send(errorMsg{err})
 	}
 }
 
@@ -88,20 +86,23 @@ func (d *downloader) download(ctx context.Context, url string) {
 
 	stdoutPipe, err := cmd.StdoutPipe()
 	if err != nil {
-		d.p.Send(errorMsg{err: fmt.Errorf("[downloader] failed to get stdout pipe: %w", err)})
+		err = fmt.Errorf("[downloader] failed to get stdout pipe: %w", err)
+		d.p.Send(errorMsg{err})
+
 		return
 	}
 
 	stderrPipe, err := cmd.StderrPipe()
 	if err != nil {
-		d.p.Send(errorMsg{err: fmt.Errorf("[downloader] failed to get stderr pipe: %w", err)})
+		err = fmt.Errorf("[downloader] failed to get stderr pipe: %w", err)
+		d.p.Send(errorMsg{err})
+
 		return
 	}
 
 	if err := cmd.Start(); err != nil {
-		d.p.Send(
-			errorMsg{err: fmt.Errorf("[downloader] failed to start download command: %w", err)},
-		)
+		err = fmt.Errorf("[downloader] failed to start download command: %w", err)
+		d.p.Send(errorMsg{err})
 
 		return
 	}
