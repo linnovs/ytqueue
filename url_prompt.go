@@ -71,6 +71,10 @@ func (p *urlPrompt) Update(msg tea.Msg) (*urlPrompt, tea.Cmd) {
 		p.spinner, cmd = p.spinner.Update(msg)
 		cmds = append(cmds, cmd)
 	case tea.KeyMsg:
+		if !p.prompt.Focused() {
+			break
+		}
+
 		switch {
 		case key.Matches(msg, p.keymap.clear):
 			p.prompt.Reset()
