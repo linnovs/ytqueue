@@ -8,7 +8,9 @@ import (
 	"io"
 	"log/slog"
 	"os/exec"
+	"path"
 	"sync"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -35,10 +37,14 @@ func (d *downloader) setProgram(p *tea.Program) {
 	d.p = p
 }
 
-const titleFormat = "%(title).50s [%(id)s].%(ext)s"
+const (
+	titleFormat            = "%(title).50s [%(id)s].%(ext)s"
+	progressUpdateInterval = time.Millisecond * 100
+)
 
-func (d *downloader) readStdout(stdoutPipe io.ReadCloser) {
+func (d *downloader) readStdout(stdoutPipe io.ReadCloser, url string) {
 	scanner := bufio.NewScanner(stdoutPipe)
+	ticker := time.NewTicker(progressUpdateInterval)
 
 	for scanner.Scan() {
 		var msg downloadProgressMsg
@@ -49,7 +55,23 @@ func (d *downloader) readStdout(stdoutPipe io.ReadCloser) {
 			continue
 		}
 
-		d.p.Send(msg)
+		switch msg.Status {
+		case "downloading":
+			select {
+			case <-ticker.C:
+				d.p.Send(msg)
+			default:
+			}
+		case "finished":
+			d.p.Send(finishDownloadMsg{
+				filename:     path.Base(msg.Filename),
+				downloadPath: d.downloadDir,
+				url:          url,
+			})
+		case "error":
+			slog.Error("download error", slog.String("stdout", scanner.Text()))
+			d.p.Send(downloadErrorMsg{"[downloader] download error occurred"}) // TODO: update msg
+		}
 	}
 }
 
@@ -107,7 +129,7 @@ func (d *downloader) download(ctx context.Context, url string) {
 		return
 	}
 
-	go d.readStdout(stdoutPipe)
+	go d.readStdout(stdoutPipe, url)
 	go d.readStderr(stderrPipe)
 
 	if err := cmd.Wait(); err != nil {
@@ -139,7 +161,7 @@ func (d *downloader) startDownload(ctx context.Context, url string) {
 	}
 
 	d.download(ctx, url)
-	d.p.Send(finishDownloadMsg{})
+	d.p.Send(downloadCompletedMsg{})
 	slog.Info("download completed", slog.String("url", url))
 }
 

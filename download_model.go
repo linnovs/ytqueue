@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"path"
 	"time"
@@ -14,9 +15,20 @@ type enqueueDownloadMsg struct {
 	url string
 }
 
-type finishDownloadMsg struct{}
+type finishDownloadMsg struct {
+	filename     string
+	downloadPath string
+	url          string
+}
+
+type downloadErrorMsg struct {
+	msg string
+}
+
+type downloadCompletedMsg struct{}
 
 type downloadProgressMsg struct {
+	Status          string  `json:"status"`
 	Filename        string  `json:"filename"`
 	DownloadedBytes float64 `json:"downloaded_bytes"`
 	TotalBytes      float64 `json:"total_bytes"`
@@ -118,25 +130,27 @@ func (d *downloaderModel) Update(msg tea.Msg) (*downloaderModel, tea.Cmd) {
 	case enqueueDownloadMsg:
 		d.queued++
 		d.status = downloadStatusPreparing
-	case finishDownloadMsg:
+	case downloadCompletedMsg:
 		d.queued--
 		d.status, d.speed, d.elapsed, d.eta = downloadStatusIdle, 0, 0, 0
 		cmds = append(cmds, d.progress.SetPercent(0), d.filename.updateText(""))
+	case downloadErrorMsg:
+		d.status = downloadStatusError
+		err := errors.New(msg.msg)
+		cmds = append(cmds, errorCmd(err))
 	case downloadProgressMsg:
-		d.status = downloadStatusFinished
 		total := max(msg.TotalBytes, msg.TotalBytesEst, 1)
 		downloaded := min(msg.DownloadedBytes, total)
 
-		if downloaded < total {
-			d.status = downloadStatusDownloading
-		}
-
+		d.status = downloadStatusDownloading
 		d.speed = msg.Speed
 		d.elapsed = msg.Elapsed * float64(time.Second)
 		d.eta = msg.Eta * float64(time.Second)
 		filename := path.Base(msg.Filename)
 		percent := downloaded / total
 		cmds = append(cmds, d.progress.SetPercent(percent), d.filename.updateText(filename))
+	case finishDownloadMsg:
+		d.status = downloadStatusFinished
 	case progress.FrameMsg:
 		progressModel, cmd := d.progress.Update(msg)
 		cmds = append(cmds, cmd)
