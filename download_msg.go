@@ -12,6 +12,10 @@ func enqueueURLCmd(d *downloader, url string) tea.Cmd {
 	}
 }
 
+type startDownloadMsg struct {
+	url string
+}
+
 type finishDownloadMsg struct {
 	filename     string
 	downloadPath string
@@ -22,7 +26,9 @@ type downloadErrorMsg struct {
 	msg string
 }
 
-type downloadCompletedMsg struct{}
+type downloadCompletedMsg struct {
+	url string
+}
 
 type downloadProgressMsg struct {
 	Status          string  `json:"status"`

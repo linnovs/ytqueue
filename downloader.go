@@ -156,8 +156,9 @@ func (d *downloader) startDownload(ctx context.Context, url string) {
 		return
 	}
 
+	d.p.Send(startDownloadMsg{url})
 	d.download(ctx, url)
-	d.p.Send(downloadCompletedMsg{})
+	d.p.Send(downloadCompletedMsg{url})
 	slog.Info("download completed", slog.String("url", url))
 }
 

@@ -88,11 +88,12 @@ func (d *downloaderModel) Update(msg tea.Msg) (*downloaderModel, tea.Cmd) {
 		d.width = msg.Width - d.style.GetHorizontalFrameSize()
 	case downloadQueuedMsg:
 		d.queued++
+	case startDownloadMsg:
 		d.status = downloadStatusPreparing
 	case downloadCompletedMsg:
 		d.queued--
 		d.status, d.speed, d.elapsed, d.eta = downloadStatusIdle, 0, 0, 0
-		cmds = append(cmds, d.progress.SetPercent(0), d.filename.updateText(""))
+		cmds = append(cmds, d.progress.SetPercent(0))
 	case downloadErrorMsg:
 		d.status = downloadStatusError
 		err := errors.New(msg.msg)
