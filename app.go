@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/charmbracelet/bubbles/help"
@@ -82,8 +83,11 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.footerMsg = "Waiting for downloads to finish..."
 	case errorMsg:
 		m.err = msg.err
-
-		cmds = append(cmds, resetErrorMsgCmd())
+		cmds = append(cmds, resetErrorMsgCmd(m.err))
+	case resetErrorMsg:
+		if errors.Is(msg.err, m.err) {
+			m.err = nil
+		}
 	}
 
 	var cmd tea.Cmd

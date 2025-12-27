@@ -19,7 +19,11 @@ func errorCmd(err error) tea.Cmd {
 	}
 }
 
-func resetErrorMsgCmd(timeoutArg ...time.Duration) tea.Cmd {
+type resetErrorMsg struct {
+	err error
+}
+
+func resetErrorMsgCmd(err error, timeoutArg ...time.Duration) tea.Cmd {
 	timeout := defaultErrorTimeout
 
 	if len(timeoutArg) >= 1 {
@@ -27,7 +31,7 @@ func resetErrorMsgCmd(timeoutArg ...time.Duration) tea.Cmd {
 	}
 
 	return tea.Tick(timeout, func(t time.Time) tea.Msg {
-		return errorMsg{nil}
+		return resetErrorMsg{err}
 	})
 }
 
