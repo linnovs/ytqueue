@@ -20,11 +20,10 @@ type urlPrompt struct {
 }
 
 func newURLPrompt() *urlPrompt {
+	style := lipgloss.NewStyle().BorderStyle(lipgloss.RoundedBorder())
 	i := textinput.New()
 	i.Placeholder = "Enter URL here..."
 	i.Focus()
-
-	style := lipgloss.NewStyle().BorderStyle(lipgloss.RoundedBorder())
 
 	return &urlPrompt{i, style, newPromptKeymap()}
 }
