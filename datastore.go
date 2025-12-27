@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log/slog"
 	"strconv"
 
 	"github.com/linnovs/ytqueue/database"
@@ -36,6 +35,10 @@ func videosToRows(videos []database.Video) []row {
 	}
 
 	return rows
+}
+
+func idStrToInt(idStr string) (int64, error) {
+	return strconv.ParseInt(idStr, 10, 0)
 }
 
 type datastore struct{ queries *database.Queries }
@@ -71,13 +74,25 @@ func (s *datastore) addVideo(
 	return &video, nil
 }
 
+func (s *datastore) toggleWatched(ctx context.Context, idStr string) (*database.Video, error) {
+	id, err := idStrToInt(idStr)
+	if err != nil {
+		return nil, err
+	}
+
+	video, err := s.queries.ToggleWatchedStatus(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return &video, nil
+}
+
 func (s *datastore) deleteVideo(ctx context.Context, idStr string) error {
-	id, err := strconv.ParseInt(idStr, 10, 0)
+	id, err := idStrToInt(idStr)
 	if err != nil {
 		return err
 	}
-
-	slog.Debug("deleting video", slog.Int64("id", id))
 
 	return s.queries.DeleteVideo(ctx, id)
 }

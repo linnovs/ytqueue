@@ -131,6 +131,22 @@ func (d *datatable) newVideoCmd(name, url, location string) tea.Cmd {
 	}
 }
 
+func (d *datatable) toggleWatchedStatusCmd(cursor int) tea.Cmd {
+	return func() tea.Msg {
+		rows := append([]row{}, d.rows...)
+
+		video, err := d.datastore.toggleWatched(context.Background(), rows[cursor][colID])
+		if err != nil {
+			return errorMsg{err}
+		}
+
+		rows[cursor] = videoToRow(*video)
+		d.setRows(rows)
+
+		return nil
+	}
+}
+
 func (d *datatable) deleteCurrentRow(cursor int) tea.Cmd {
 	return func() tea.Msg {
 		row := d.rows[cursor]

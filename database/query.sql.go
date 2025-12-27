@@ -77,3 +77,22 @@ func (q *Queries) GetVideos(ctx context.Context) ([]Video, error) {
 	}
 	return items, nil
 }
+
+const toggleWatchedStatus = `-- name: ToggleWatchedStatus :one
+UPDATE videos SET is_watched = not is_watched WHERE id = ? RETURNING id, name, url, location, is_watched, order_index, created_at
+`
+
+func (q *Queries) ToggleWatchedStatus(ctx context.Context, id int64) (Video, error) {
+	row := q.queryRow(ctx, q.toggleWatchedStatusStmt, toggleWatchedStatus, id)
+	var i Video
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Url,
+		&i.Location,
+		&i.IsWatched,
+		&i.OrderIndex,
+		&i.CreatedAt,
+	)
+	return i, err
+}

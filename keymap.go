@@ -40,10 +40,10 @@ func (p promptKeymap) FullHelp() [][]key.Binding {
 
 type datatableKeymap struct {
 	baseKeymap
-	lineUp, lineDown, moveUp, moveDown         key.Binding
-	pageUp, pageDown, halfPageUp, halfPageDown key.Binding
-	gotoTop, gotoBottom                        key.Binding
-	deleteRow                                  key.Binding
+	lineUp, lineDown, moveUp, moveDown                 key.Binding
+	pageUp, pageDown, halfPageUp, halfPageDown         key.Binding
+	gotoTop, gotoBottom                                key.Binding
+	playFromRow, stopPlaying, toggleWatched, deleteRow key.Binding
 }
 
 func (d datatableKeymap) ShortHelp() []key.Binding {
@@ -56,7 +56,7 @@ func (d datatableKeymap) FullHelp() [][]key.Binding {
 		{d.lineUp, d.lineDown, d.moveUp, d.moveDown},
 		{d.pageUp, d.pageDown, d.halfPageUp, d.halfPageDown},
 		{d.gotoTop, d.gotoBottom},
-		{d.deleteRow},
+		{d.playFromRow, d.stopPlaying, d.toggleWatched, d.deleteRow},
 	}
 }
 
@@ -108,8 +108,17 @@ func newDatatableKeymap() datatableKeymap {
 			key.WithKeys("ctrl+d"),
 			key.WithHelp("ctrl+d", "half page down"),
 		),
-		gotoTop:    key.NewBinding(key.WithKeys("g"), key.WithHelp("g", "go to top")),
-		gotoBottom: key.NewBinding(key.WithKeys("G"), key.WithHelp("G", "go to bottom")),
-		deleteRow:  key.NewBinding(key.WithKeys("x"), key.WithHelp("x", "delete row")),
+		gotoTop:     key.NewBinding(key.WithKeys("g"), key.WithHelp("g", "go to top")),
+		gotoBottom:  key.NewBinding(key.WithKeys("G"), key.WithHelp("G", "go to bottom")),
+		playFromRow: key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "play from row")),
+		stopPlaying: key.NewBinding(
+			key.WithKeys("shift+enter"),
+			key.WithHelp("shift+enter", "stop playing"),
+		),
+		toggleWatched: key.NewBinding(
+			key.WithKeys(" "),
+			key.WithHelp("space", "toggle watched"),
+		),
+		deleteRow: key.NewBinding(key.WithKeys("x"), key.WithHelp("x", "delete row")),
 	}
 }
