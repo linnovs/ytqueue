@@ -9,6 +9,31 @@ import (
 	"context"
 )
 
+const addVideo = `-- name: AddVideo :one
+INSERT INTO videos (name, url, location) values (?, ?, ?) RETURNING id, name, url, location, is_watched, order_index, created_at
+`
+
+type AddVideoParams struct {
+	Name     string `json:"name"`
+	Url      string `json:"url"`
+	Location string `json:"location"`
+}
+
+func (q *Queries) AddVideo(ctx context.Context, arg AddVideoParams) (Video, error) {
+	row := q.queryRow(ctx, q.addVideoStmt, addVideo, arg.Name, arg.Url, arg.Location)
+	var i Video
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Url,
+		&i.Location,
+		&i.IsWatched,
+		&i.OrderIndex,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const getVideos = `-- name: GetVideos :many
 SELECT id, name, url, location, is_watched, order_index, created_at FROM videos ORDER BY order_index DESC
 `

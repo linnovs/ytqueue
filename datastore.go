@@ -15,16 +15,20 @@ func boolToYesNo(b bool) string {
 	return "❌"
 }
 
+func videoToRow(v database.Video) row {
+	return row{
+		colName:     v.Name,
+		colURL:      v.Url,
+		colLocation: v.Location,
+		colWatched:  boolToYesNo(*v.IsWatched),
+	}
+}
+
 func videosToRows(videos []database.Video) []row {
 	rows := make([]row, 0, len(videos))
 
 	for _, v := range videos {
-		rows = append(rows, row{
-			colName:     v.Name,
-			colURL:      v.Url,
-			colLocation: v.Location,
-			colWatched:  boolToYesNo(*v.IsWatched),
-		})
+		rows = append(rows, videoToRow(v))
 	}
 
 	return rows
@@ -45,6 +49,22 @@ func (s *datastore) getVideos(ctx context.Context) ([]database.Video, error) {
 	}
 
 	return videos, nil
+}
+
+func (s *datastore) addVideo(
+	ctx context.Context,
+	name, url, location string,
+) (*database.Video, error) {
+	video, err := s.queries.AddVideo(ctx, database.AddVideoParams{
+		Name:     name,
+		Url:      url,
+		Location: location,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &video, nil
 }
 
 func (s *datastore) Close() error {

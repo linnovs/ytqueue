@@ -107,6 +107,20 @@ func (d *datatable) Init() tea.Cmd {
 	}
 }
 
+func (d *datatable) newVideoCmd(name, url, location string) tea.Cmd {
+	return func() tea.Msg {
+		video, err := d.datastore.addVideo(context.Background(), name, url, location)
+		if err != nil {
+			return errorMsg{err}
+		}
+
+		rows := append([]row{videoToRow(*video)}, d.rows...)
+		d.setRows(rows)
+
+		return nil
+	}
+}
+
 func (d *datatable) Update(msg tea.Msg) (*datatable, tea.Cmd) {
 	var cmd tea.Cmd
 
@@ -115,6 +129,8 @@ func (d *datatable) Update(msg tea.Msg) (*datatable, tea.Cmd) {
 		d.width = msg.Width - d.styles.GetHorizontalFrameSize()
 		d.viewport.Width = d.width
 		d.calculateColWidth()
+	case finishDownloadMsg:
+		return d, d.newVideoCmd(msg.filename, msg.url, msg.downloadPath)
 	case sectionChangedMsg:
 		d.isFocused = msg.section == sectionDatatable
 		if msg.section == sectionDatatable {
