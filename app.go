@@ -89,6 +89,8 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.footerMsg = "Waiting for downloads to finish..."
 	case errorMsg:
 		m.err = msg.err
+
+		cmds = append(cmds, resetErrorMsgCmd())
 	}
 
 	var cmd tea.Cmd
