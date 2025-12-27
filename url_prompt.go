@@ -48,7 +48,7 @@ func (p *urlPrompt) Update(msg tea.Msg) (*urlPrompt, tea.Cmd) {
 		p.prompt.Width -= lipgloss.Width(p.prompt.Prompt) + 1
 	case sectionChangedMsg:
 		if msg.section == sectionURLPrompt {
-			p.prompt.Focus()
+			cmds = append(cmds, p.prompt.Focus())
 		} else {
 			p.prompt.Blur()
 		}
