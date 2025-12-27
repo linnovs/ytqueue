@@ -151,7 +151,7 @@ func (m appModel) footerView() string {
 	}
 
 	if len(footerItem) != 0 {
-		return lipgloss.JoinVertical(lipgloss.Center, footerItem...)
+		return lipgloss.JoinVertical(lipgloss.Center, footerItem...) + "\n"
 	}
 
 	return ""
