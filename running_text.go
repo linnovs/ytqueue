@@ -26,6 +26,7 @@ type runningTextFullTextUpdateMsg struct {
 
 type runningTextModel struct {
 	style    lipgloss.Style
+	text     string
 	fullText []rune
 	textLen  int
 	width    int
@@ -52,6 +53,11 @@ func (r *runningTextModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case runningTextFullTextUpdateMsg:
+		if msg.text == r.text {
+			break
+		}
+
+		r.text = msg.text
 		r.fullText = []rune(msg.text + emptyRunningText + msg.text)
 		r.textLen = utf8.RuneCountInString(msg.text + emptyRunningText)
 	case runningTextTickMsg:
