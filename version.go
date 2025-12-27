@@ -2,5 +2,5 @@ package main
 
 var (
 	version   = "dev"
-	buildDate = "unknown"
+	buildDate = "unknown" // nolint: gochecknoglobals
 )
