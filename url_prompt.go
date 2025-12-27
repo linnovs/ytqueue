@@ -24,7 +24,9 @@ type urlPrompt struct {
 }
 
 func newURLPrompt() *urlPrompt {
-	style := lipgloss.NewStyle().BorderStyle(lipgloss.RoundedBorder())
+	style := lipgloss.NewStyle().
+		BorderStyle(lipgloss.RoundedBorder()).
+		BorderForeground(activeBorderColor)
 	i := textinput.New()
 	i.Placeholder = "Enter URL here..."
 	l := make([]string, 0)
@@ -54,8 +56,10 @@ func (p *urlPrompt) Update(msg tea.Msg) (*urlPrompt, tea.Cmd) {
 		p.prompt.Width -= lipgloss.Width(p.prompt.Prompt) + 1
 	case sectionChangedMsg:
 		if msg.section == sectionURLPrompt {
+			p.style = p.style.BorderForeground(activeBorderColor)
 			cmds = append(cmds, p.prompt.Focus())
 		} else {
+			p.style = p.style.UnsetBorderForeground()
 			p.prompt.Blur()
 		}
 	case downloadQueuedMsg:

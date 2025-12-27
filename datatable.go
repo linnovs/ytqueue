@@ -117,6 +117,11 @@ func (d *datatable) Update(msg tea.Msg) (*datatable, tea.Cmd) {
 		d.calculateColWidth()
 	case sectionChangedMsg:
 		d.isFocused = msg.section == sectionDatatable
+		if msg.section == sectionDatatable {
+			d.styles = d.styles.BorderForeground(activeBorderColor)
+		} else {
+			d.styles = d.styles.UnsetBorderForeground()
+		}
 	case tea.KeyMsg:
 		d.keyMsgHandler(msg)
 	}

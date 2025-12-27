@@ -11,6 +11,8 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+var activeBorderColor = lipgloss.Color("99") // nolint: gochecknoglobals
+
 type waitingMsg struct{}
 
 type appModel struct {
