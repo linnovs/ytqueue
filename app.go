@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 
 	"github.com/charmbracelet/bubbles/help"
@@ -26,16 +27,16 @@ type appModel struct {
 	footerMsg       string
 }
 
-func newModel(d *downloader, t *datatable, cfg *config) appModel {
+func newModel(d *downloader, db *sql.DB, cfg *config) appModel {
 	return appModel{
 		section:         sectionURLPrompt,
 		keymap:          newKeymap(),
 		help:            help.New(),
-		urlPrompt:       newURLPrompt(d),
+		urlPrompt:       newURLPrompt(),
 		topbar:          newTopbar(),
 		downloader:      d,
 		downloaderModel: newDownloaderModel(cfg.DownloadPath),
-		datatable:       t,
+		datatable:       newDatatable(db),
 		errorStyle:      newErrorStyle(),
 	}
 }

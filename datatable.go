@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/viewport"
@@ -41,14 +42,14 @@ type datatable struct {
 	isFocused        bool
 }
 
-func newDatatable(ds *datastore) *datatable {
+func newDatatable(db *sql.DB) *datatable {
 	// minus topbar, urlPrompt, downloaderView, datatable's header (include borders)
 	const defaultViewportHeight = minHeight - 1 - 3 - 4 - 4
 
 	styles := lipgloss.NewStyle().Border(lipgloss.RoundedBorder())
 	d := &datatable{
 		widths:      make(map[column]int),
-		datastore:   ds,
+		datastore:   newDatastore(db),
 		viewport:    viewport.New(0, defaultViewportHeight),
 		headerStyle: lipgloss.NewStyle().Bold(true),
 		selectedRowStyle: lipgloss.NewStyle().

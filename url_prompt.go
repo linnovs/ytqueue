@@ -9,25 +9,34 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-type urlPrompt struct {
-	prompt     textinput.Model
-	style      lipgloss.Style
-	keymap     promptKeymap
-	downloader *downloader
+type enqueueURLMsg struct {
+	url string
 }
 
-func newURLPrompt(d *downloader) *urlPrompt {
+type urlPrompt struct {
+	prompt textinput.Model
+	style  lipgloss.Style
+	keymap promptKeymap
+}
+
+func newURLPrompt() *urlPrompt {
 	i := textinput.New()
 	i.Placeholder = "Enter URL here..."
 	i.Focus()
 
 	style := lipgloss.NewStyle().BorderStyle(lipgloss.RoundedBorder())
 
-	return &urlPrompt{i, style, newPromptKeymap(), d}
+	return &urlPrompt{i, style, newPromptKeymap()}
 }
 
 func (p *urlPrompt) Init() tea.Cmd {
 	return textinput.Blink
+}
+
+func (p *urlPrompt) enqueueURLCmd(url string) tea.Cmd {
+	return func() tea.Msg {
+		return enqueueURLMsg{url}
+	}
 }
 
 func (p *urlPrompt) Update(msg tea.Msg) (*urlPrompt, tea.Cmd) {
@@ -53,7 +62,7 @@ func (p *urlPrompt) Update(msg tea.Msg) (*urlPrompt, tea.Cmd) {
 				return p, errorCmd(err)
 			}
 
-			cmds = append(cmds, p.downloader.downloadCmd(filmUrl.String()))
+			cmds = append(cmds, p.enqueueURLCmd(filmUrl.String()))
 
 			p.prompt.Reset()
 		}
