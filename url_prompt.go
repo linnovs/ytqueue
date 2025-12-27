@@ -1,24 +1,29 @@
 package main
 
 import (
+	"net/url"
+
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
 type urlPrompt struct {
-	prompt textinput.Model
-	style  lipgloss.Style
+	prompt     textinput.Model
+	style      lipgloss.Style
+	keymap     promptKeymap
+	downloader *downloader
 }
 
-func newURLPrompt() *urlPrompt {
+func newURLPrompt(d *downloader) *urlPrompt {
 	i := textinput.New()
 	i.Placeholder = "Enter URL here..."
 	i.Focus()
 
 	style := lipgloss.NewStyle().BorderStyle(lipgloss.RoundedBorder())
 
-	return &urlPrompt{i, style}
+	return &urlPrompt{i, style, newPromptKeymap(), d}
 }
 
 func (p *urlPrompt) Init() tea.Cmd {
@@ -26,6 +31,8 @@ func (p *urlPrompt) Init() tea.Cmd {
 }
 
 func (p *urlPrompt) Update(msg tea.Msg) (*urlPrompt, tea.Cmd) {
+	var cmds []tea.Cmd
+
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		p.prompt.Width = msg.Width - p.style.GetHorizontalFrameSize()
@@ -36,12 +43,27 @@ func (p *urlPrompt) Update(msg tea.Msg) (*urlPrompt, tea.Cmd) {
 		} else {
 			p.prompt.Blur()
 		}
+	case tea.KeyMsg:
+		switch {
+		case key.Matches(msg, p.keymap.clear):
+			p.prompt.Reset()
+		case key.Matches(msg, p.keymap.submit):
+			filmUrl, err := url.Parse(p.prompt.Value())
+			if err != nil {
+				return p, errorCmd(err)
+			}
+
+			cmds = append(cmds, p.downloader.downloadCmd(filmUrl.String()))
+
+			p.prompt.Reset()
+		}
 	}
 
 	var cmd tea.Cmd
 	p.prompt, cmd = p.prompt.Update(msg)
+	cmds = append(cmds, cmd)
 
-	return p, cmd
+	return p, tea.Batch(cmds...)
 }
 
 func (p *urlPrompt) View() string {
