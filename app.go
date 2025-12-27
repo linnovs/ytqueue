@@ -49,6 +49,13 @@ func (m appModel) Init() tea.Cmd {
 	)
 }
 
+func (m appModel) quit() tea.Cmd {
+	return func() tea.Msg {
+		m.downloader.stop()
+		return tea.Quit()
+	}
+}
+
 func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
@@ -58,7 +65,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, m.keymap.help):
 			m.help.ShowAll = !m.help.ShowAll
 		case key.Matches(msg, m.keymap.quit):
-			return m, m.downloader.quit
+			return m, m.quit()
 		case key.Matches(msg, m.keymap.prev):
 			m.section = m.section.prev()
 			cmds = append(cmds, sectionChangedCmd(m.section))

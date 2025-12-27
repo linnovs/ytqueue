@@ -179,10 +179,8 @@ func (d *downloader) start() {
 	}
 }
 
-func (d *downloader) quit() tea.Msg {
+func (d *downloader) stop() {
 	close(d.closeCh)
 	d.p.Send(waitingMsg{})
 	d.wg.Wait()
-
-	return tea.Quit()
 }
