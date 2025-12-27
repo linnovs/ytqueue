@@ -26,18 +26,19 @@ const (
 type row map[column]string
 
 type datatable struct {
-	width              int
-	widths             map[column]int
-	datastore          *datastore
-	viewport           viewport.Model
-	styles             lipgloss.Style
-	headerStyle        lipgloss.Style
-	selectedRowStyle   lipgloss.Style
-	focusedBGColor     lipgloss.Color
-	columns            []column
-	rows               []row
-	cursor, start, end int
-	isFocused          bool
+	width            int
+	widths           map[column]int
+	datastore        *datastore
+	viewport         viewport.Model
+	styles           lipgloss.Style
+	headerStyle      lipgloss.Style
+	selectedRowStyle lipgloss.Style
+	focusedBGColor   lipgloss.Color
+	keymap           datatableKeymap
+	columns          []column
+	rows             []row
+	cursor           int
+	isFocused        bool
 }
 
 func newDatatable(ds *datastore) *datatable {
@@ -55,6 +56,7 @@ func newDatatable(ds *datastore) *datatable {
 			Foreground(lipgloss.Color("229")),
 		focusedBGColor: lipgloss.Color("141"),
 		styles:         styles,
+		keymap:         newDatatableKeymap(),
 		columns:        []column{colWatched, colName, colURL, colLocation},
 		cursor:         0,
 	}
@@ -77,16 +79,7 @@ func (d *datatable) calculateColWidth() {
 
 func (d *datatable) updateViewport() {
 	renderedRows := make([]string, 0, len(d.rows))
-
-	if d.cursor >= 0 {
-		d.start = clamp(d.cursor-d.viewport.Height, 0, d.cursor)
-	} else {
-		d.start = 0
-	}
-
-	d.end = clamp(d.start+d.viewport.Height, d.cursor, len(d.rows))
-
-	for i := d.start; i < d.end; i++ {
+	for i := range d.rows {
 		renderedRows = append(renderedRows, d.renderRow(i))
 	}
 
@@ -114,20 +107,20 @@ func (d *datatable) Init() tea.Cmd {
 }
 
 func (d *datatable) Update(msg tea.Msg) (*datatable, tea.Cmd) {
+	var cmd tea.Cmd
+
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		d.width = msg.Width - d.styles.GetHorizontalFrameSize()
 		d.viewport.Width = d.width
 		d.calculateColWidth()
 	case sectionChangedMsg:
-		if msg.section == sectionDatatable {
-			d.isFocused = true
-		} else {
-			d.isFocused = false
-		}
+		d.isFocused = msg.section == sectionDatatable
+	case tea.KeyMsg:
+		d.keyMsgHandler(msg)
 	}
 
-	return d, nil
+	return d, cmd
 }
 
 func (d *datatable) setHeight(height int) {
