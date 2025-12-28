@@ -7,6 +7,7 @@ package database
 
 import (
 	"context"
+	"time"
 )
 
 const addVideo = `-- name: AddVideo :one
@@ -114,4 +115,18 @@ func (q *Queries) ToggleWatchedStatus(ctx context.Context, id int64) (Video, err
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const updateVideoOrder = `-- name: UpdateVideoOrder :exec
+UPDATE videos SET order_index = ? WHERE id = ?
+`
+
+type UpdateVideoOrderParams struct {
+	OrderIndex *time.Time `json:"orderIndex"`
+	ID         int64      `json:"id"`
+}
+
+func (q *Queries) UpdateVideoOrder(ctx context.Context, arg UpdateVideoOrderParams) error {
+	_, err := q.exec(ctx, q.updateVideoOrderStmt, updateVideoOrder, arg.OrderIndex, arg.ID)
+	return err
 }

@@ -10,5 +10,8 @@ UPDATE videos SET is_watched = not is_watched WHERE id = ? RETURNING *;
 -- name: SetWatchedVideo :one
 UPDATE videos SET is_watched = true WHERE id = ? RETURNING *;
 
+-- name: UpdateVideoOrder :exec
+UPDATE videos SET order_index = ? WHERE id = ?;
+
 -- name: DeleteVideo :exec
 DELETE FROM videos WHERE id = ?;

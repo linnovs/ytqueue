@@ -1,5 +1,14 @@
 package main
 
+import (
+	"fmt"
+	"log/slog"
+	"slices"
+	"strconv"
+
+	tea "github.com/charmbracelet/bubbletea"
+)
+
 func (d *datatable) scrollUp() {
 	if d.cursor < d.viewport.YOffset {
 		d.viewport.SetYOffset(d.cursor)
@@ -62,18 +71,68 @@ func (d *datatable) gotoBottom() {
 	d.cursor = len(d.rows) - 1
 }
 
-func (d *datatable) moveUp() {
+func (d *datatable) updateRowOrderCmd(id string) tea.Cmd {
+	return func() tea.Msg {
+		d.rowMu.Lock()
+		defer d.rowMu.Unlock()
+
+		slog.Debug("updating row order", slog.String("id", id))
+
+		idx := slices.IndexFunc(d.rows, func(r row) bool { return r[colID] == id })
+		upperIdx := clamp(idx-1, 0, len(d.rows)-1)
+		lowerIdx := clamp(idx+1, 0, len(d.rows)-1)
+
+		upperOrderUnix, err := strconv.Atoi(d.rows[upperIdx][colOrder])
+		if err != nil {
+			return errorMsg{fmt.Errorf("failed to parse upper order index: %w", err)}
+		}
+
+		lowerOrderUnix, err := strconv.Atoi(d.rows[lowerIdx][colOrder])
+		if err != nil {
+			return errorMsg{fmt.Errorf("failed to parse lower order index: %w", err)}
+		}
+
+		const inHalf = 2
+		newOrderUnix := int64((upperOrderUnix + lowerOrderUnix) / inHalf)
+
+		if err := d.datastore.updateVideoOrder(d.getCtx(), id, newOrderUnix); err != nil {
+			return errorMsg{fmt.Errorf("failed to update video order: %w", err)}
+		}
+
+		slog.Debug(
+			"updated row order",
+			slog.String("id", id),
+			slog.Int64("new_order_unix", newOrderUnix),
+		)
+
+		return nil
+	}
+}
+
+func (d *datatable) moveUp() tea.Cmd {
 	upperIdx := clamp(d.cursor-1, 0, len(d.rows)-1)
+
+	d.rowMu.Lock()
 	d.rows[d.cursor], d.rows[upperIdx] = d.rows[upperIdx], d.rows[d.cursor]
+	d.rowMu.Unlock()
+
 	d.cursor = upperIdx
 	d.scrollUp()
 	d.updateViewport()
+
+	return d.updateRowOrderCmd(d.rows[d.cursor][colID])
 }
 
-func (d *datatable) moveDown() {
+func (d *datatable) moveDown() tea.Cmd {
 	lowerIdx := clamp(d.cursor+1, 0, len(d.rows)-1)
+
+	d.rowMu.Lock()
 	d.rows[d.cursor], d.rows[lowerIdx] = d.rows[lowerIdx], d.rows[d.cursor]
+	d.rowMu.Unlock()
+
 	d.cursor = lowerIdx
 	d.scrollDown()
 	d.updateViewport()
+
+	return d.updateRowOrderCmd(d.rows[d.cursor][colID])
 }

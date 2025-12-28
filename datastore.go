@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/linnovs/ytqueue/database"
 )
@@ -70,6 +71,24 @@ func (s *datastore) addVideo(
 	}
 
 	return &video, nil
+}
+
+func (s *datastore) updateVideoOrder(ctx context.Context, idStr string, orderUnix int64) error {
+	id, err := idStrToInt(idStr)
+	if err != nil {
+		return err
+	}
+
+	idx := time.Unix(orderUnix, 0).UTC()
+
+	if err := s.queries.UpdateVideoOrder(ctx, database.UpdateVideoOrderParams{
+		ID:         id,
+		OrderIndex: &idx,
+	}); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *datastore) setWatched(ctx context.Context, idStr string) (*database.Video, error) {
