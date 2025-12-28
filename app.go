@@ -1,7 +1,7 @@
 package main
 
 import (
-	"database/sql"
+	"context"
 	"errors"
 	"fmt"
 
@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/linnovs/ytqueue/database"
 )
 
 var activeBorderColor = lipgloss.Color("99") // nolint: gochecknoglobals
@@ -17,6 +18,7 @@ type waitingMsg struct{}
 
 type appModel struct {
 	section         sectionType
+	cancelFn        context.CancelFunc
 	keymap          keymap
 	width, height   int
 	help            help.Model
@@ -30,16 +32,29 @@ type appModel struct {
 	footerMsg       string
 }
 
-func newModel(d *downloader, db *sql.DB, cfg *config) appModel {
+type contextFn func() context.Context
+
+func newModel(
+	d *downloader,
+	ctx context.Context,
+	cancelFn context.CancelFunc,
+	queries *database.Queries,
+	cfg *config,
+) appModel {
+	getContext := func() context.Context {
+		return ctx
+	}
+
 	return appModel{
 		section:         sectionURLPrompt,
+		cancelFn:        cancelFn,
 		keymap:          newKeymap(),
 		help:            help.New(),
 		urlPrompt:       newURLPrompt(),
 		topbar:          newTopbar(),
 		downloader:      d,
 		downloaderModel: newDownloaderModel(cfg.DownloadPath),
-		datatable:       newDatatable(db),
+		datatable:       newDatatable(queries, getContext),
 		errorStyle:      newErrorStyle(),
 	}
 }
@@ -53,9 +68,11 @@ func (m appModel) Init() tea.Cmd {
 	)
 }
 
-func quitCmd(d *downloader) tea.Cmd {
+func (m appModel) exitCmd() tea.Cmd {
 	return func() tea.Msg {
-		d.stop()
+		m.cancelFn()
+		m.downloader.stop()
+
 		return tea.Quit()
 	}
 }
@@ -69,7 +86,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, m.keymap.help):
 			m.help.ShowAll = !m.help.ShowAll
 		case key.Matches(msg, m.keymap.quit):
-			return m, quitCmd(m.downloader)
+			return m, m.exitCmd()
 		case key.Matches(msg, m.keymap.prev):
 			m.section = m.section.prev()
 			cmds = append(cmds, sectionChangedCmd(m.section))

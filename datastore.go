@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"strconv"
 
@@ -43,9 +42,7 @@ func idStrToInt(idStr string) (int64, error) {
 
 type datastore struct{ queries *database.Queries }
 
-func newDatastore(db *sql.DB) *datastore {
-	queries := database.New(db)
-
+func newDatastore(queries *database.Queries) *datastore {
 	return &datastore{queries: queries}
 }
 

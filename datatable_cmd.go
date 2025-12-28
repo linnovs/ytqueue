@@ -1,14 +1,17 @@
 package main
 
 import (
-	"context"
+	"errors"
+	"fmt"
+	"os"
+	"path"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
 
 func (d *datatable) newVideoCmd(name, url, location string) tea.Cmd {
 	return func() tea.Msg {
-		video, err := d.datastore.addVideo(context.Background(), name, url, location)
+		video, err := d.datastore.addVideo(d.getCtx(), name, url, location)
 		if err != nil {
 			return errorMsg{err}
 		}
@@ -24,7 +27,7 @@ func (d *datatable) toggleWatchedStatusCmd(cursor int) tea.Cmd {
 	return func() tea.Msg {
 		rows := append([]row{}, d.rows...)
 
-		video, err := d.datastore.toggleWatched(context.Background(), rows[cursor][colID])
+		video, err := d.datastore.toggleWatched(d.getCtx(), rows[cursor][colID])
 		if err != nil {
 			return errorMsg{err}
 		}
@@ -36,12 +39,12 @@ func (d *datatable) toggleWatchedStatusCmd(cursor int) tea.Cmd {
 	}
 }
 
-func (d *datatable) deleteCurrentRowCmd(cursor int) tea.Cmd {
+func (d *datatable) deleteRowCmd(cursor int) tea.Cmd {
 	return func() tea.Msg {
 		row := d.rows[cursor]
 		rows := append(d.rows[:cursor], d.rows[cursor+1:]...)
 
-		if err := d.datastore.deleteVideo(context.Background(), row[colID]); err != nil {
+		if err := d.datastore.deleteVideo(d.getCtx(), row[colID]); err != nil {
 			return errorMsg{err}
 		}
 

@@ -1,14 +1,13 @@
 package main
 
 import (
-	"context"
-	"database/sql"
 	"strings"
 	"sync"
 
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/linnovs/ytqueue/database"
 	"github.com/mattn/go-runewidth"
 )
 
@@ -31,6 +30,7 @@ type row map[column]string
 type datatable struct {
 	width            int
 	widths           map[column]int
+	getCtx           contextFn
 	datastore        *datastore
 	viewport         viewport.Model
 	styles           lipgloss.Style
@@ -46,14 +46,15 @@ type datatable struct {
 	deleteConfirm    bool
 }
 
-func newDatatable(db *sql.DB) *datatable {
+func newDatatable(queries *database.Queries, getCtx contextFn) *datatable {
 	// minus topbar, urlPrompt, downloaderView, datatable's header (include borders)
 	const defaultViewportHeight = minHeight - 1 - 3 - 4 - 4
 
 	styles := lipgloss.NewStyle().Border(lipgloss.RoundedBorder())
 	d := &datatable{
 		widths:      make(map[column]int),
-		datastore:   newDatastore(db),
+		getCtx:      getCtx,
+		datastore:   newDatastore(queries),
 		viewport:    viewport.New(0, defaultViewportHeight),
 		headerStyle: lipgloss.NewStyle().Bold(true),
 		selectedRowStyle: lipgloss.NewStyle().
@@ -104,7 +105,7 @@ func (d *datatable) setRows(rows []row) {
 
 func (d *datatable) Init() tea.Cmd {
 	return func() tea.Msg {
-		ctx := context.Background()
+		ctx := d.getCtx()
 
 		videos, err := d.datastore.getVideos(ctx)
 		if err != nil {
@@ -118,7 +119,7 @@ func (d *datatable) Init() tea.Cmd {
 }
 
 func (d *datatable) Update(msg tea.Msg) (*datatable, tea.Cmd) {
-	var cmd tea.Cmd
+	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
@@ -135,10 +136,10 @@ func (d *datatable) Update(msg tea.Msg) (*datatable, tea.Cmd) {
 			d.styles = d.styles.UnsetBorderForeground()
 		}
 	case tea.KeyMsg:
-		cmd = d.keyMsgHandler(msg)
+		cmds = append(cmds, d.keyMsgHandler(msg))
 	}
 
-	return d, cmd
+	return d, tea.Batch(cmds...)
 }
 
 func (d *datatable) setHeight(height int) {

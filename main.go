@@ -1,12 +1,14 @@
 package main
 
 import (
+	"context"
 	"log/slog"
 	"os"
 	"path/filepath"
 
 	"github.com/adrg/xdg"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/linnovs/ytqueue/database"
 )
 
 const fileperm = 0o600
@@ -55,14 +57,23 @@ func runApp() int {
 		return 1
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+
+	queries, err := database.Prepare(ctx, db)
+	if err != nil {
+		slog.Error("unable to prepare database queries", slog.String("error", err.Error()))
+		return 1
+	}
+
 	handler := slog.NewTextHandler(out, &slog.HandlerOptions{Level: slog.LevelDebug})
 	slog.SetDefault(slog.New(handler))
 
+
 	d := newDownloader(cfg)
-	p := tea.NewProgram(newModel(d, db, cfg), tea.WithAltScreen())
+	p := tea.NewProgram(newModel(d, ctx, cancel, queries, cfg), tea.WithAltScreen())
 	d.setProgram(p)
 
-	go d.start()
+	go d.start(ctx)
 
 	if _, err := p.Run(); err != nil {
 		slog.Error("application crashed", slog.String("error", err.Error()))

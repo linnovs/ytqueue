@@ -162,13 +162,10 @@ func (d *downloader) startDownload(ctx context.Context, url string) {
 	slog.Info("download completed", slog.String("url", url))
 }
 
-func (d *downloader) start() {
-	ctx, cancel := context.WithCancel(context.Background())
-
+func (d *downloader) start(ctx context.Context) {
 	for {
 		select {
-		case <-d.closeCh:
-			cancel()
+		case <-ctx.Done():
 			return
 		case url := <-d.queue:
 			d.startDownload(ctx, url)
@@ -177,7 +174,6 @@ func (d *downloader) start() {
 }
 
 func (d *downloader) stop() {
-	close(d.closeCh)
 	d.p.Send(waitingMsg{})
 	d.wg.Wait()
 }

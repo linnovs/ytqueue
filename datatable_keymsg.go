@@ -41,7 +41,7 @@ func (d *datatable) keyMsgHandler(msg tea.KeyMsg) tea.Cmd {
 		cmd = d.toggleWatchedStatusCmd(d.cursor)
 	case key.Matches(msg, d.keymap.deleteRow):
 		if d.deleteConfirm {
-			cmd = d.deleteCurrentRowCmd(d.cursor)
+			cmd = d.deleteRowCmd(d.cursor)
 		}
 
 		d.deleteConfirm = !d.deleteConfirm
