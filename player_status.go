@@ -9,10 +9,23 @@ func (p *player) isPlaying() bool {
 	return p.playing
 }
 
-func (p *player) setPlaying(playing bool) {
+func (p *player) setPlaying(playing bool, id ...string) {
 	p.playingMu.Lock()
 	defer p.playingMu.Unlock()
 	p.playing = playing
+
+	if len(id) > 0 {
+		p.currentlyPlayingId = id[0]
+	} else {
+		p.currentlyPlayingId = ""
+	}
+}
+
+func (p *player) getCurrentlyPlayingId() string {
+	p.playingMu.Lock()
+	defer p.playingMu.Unlock()
+
+	return p.currentlyPlayingId
 }
 
 func (p *player) isRunning() bool {

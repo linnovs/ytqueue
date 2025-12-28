@@ -138,7 +138,9 @@ func (d *datatable) Update(msg tea.Msg) (*datatable, tea.Cmd) {
 	case finishPlayingMsg:
 		cmds = append(cmds, d.playNextOrStopCmd())
 	case stoppedPlayingMsg:
-		d.playingId = ""
+		if d.playingId == msg.id {
+			d.playingId = ""
+		}
 	case sectionChangedMsg:
 		d.isFocused = msg.section == sectionDatatable
 		if msg.section == sectionDatatable {

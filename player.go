@@ -10,17 +10,20 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-type finishPlayingMsg struct{}
-type stoppedPlayingMsg struct{}
+type (
+	finishPlayingMsg  struct{}
+	stoppedPlayingMsg struct{ id string }
+)
 
 type player struct {
-	program   *tea.Program
-	playingMu *sync.Mutex
-	playing   bool
-	processMu *sync.Mutex
-	process   *os.Process
-	sockPath  string
-	commandCh chan []string
+	program            *tea.Program
+	playingMu          *sync.Mutex
+	playing            bool
+	currentlyPlayingId string
+	processMu          *sync.Mutex
+	process            *os.Process
+	sockPath           string
+	commandCh          chan []string
 }
 
 func newPlayer() *player {
