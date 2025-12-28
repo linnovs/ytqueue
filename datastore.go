@@ -23,6 +23,7 @@ func videoToRow(v database.Video) row {
 		colURL:      v.Url,
 		colLocation: v.Location,
 		colWatched:  boolToYesNo(*v.IsWatched),
+		colOrder:    fmt.Sprint(v.OrderIndex.Unix()),
 	}
 }
 

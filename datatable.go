@@ -23,6 +23,7 @@ const (
 	colName     column = "Name"
 	colURL      column = "URL"
 	colLocation column = "Location"
+	colOrder    column = "Order"
 )
 
 type row map[column]string
