@@ -27,12 +27,6 @@ func (d *datatable) newVideoCmd(name, url, location string) tea.Cmd {
 
 func (d *datatable) playStopRowCmd(id string) tea.Cmd {
 	return func() tea.Msg {
-		if d.player.isPlaying() {
-			if err := d.player.stop(); err != nil {
-				return errorMsg{err: fmt.Errorf("failed to stop player: %w", err)}
-			}
-		}
-
 		slog.Debug(
 			"playStopRowCmd",
 			slog.String("currentPlayingId", d.playingId),
@@ -41,6 +35,12 @@ func (d *datatable) playStopRowCmd(id string) tea.Cmd {
 
 		if d.playingId == id {
 			d.playingId = ""
+
+			if d.player.isPlaying() {
+				if err := d.player.stop(); err != nil {
+					return errorMsg{err: fmt.Errorf("failed to stop player: %w", err)}
+				}
+			}
 
 			return nil
 		}
