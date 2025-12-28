@@ -11,6 +11,7 @@ import (
 )
 
 type finishPlayingMsg struct{}
+type stoppedPlayingMsg struct{}
 
 type player struct {
 	program   *tea.Program

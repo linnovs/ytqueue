@@ -137,6 +137,8 @@ func (d *datatable) Update(msg tea.Msg) (*datatable, tea.Cmd) {
 		cmds = append(cmds, d.newVideoCmd(msg.filename, msg.url, msg.downloadPath))
 	case finishPlayingMsg:
 		cmds = append(cmds, d.playNextOrStopCmd())
+	case stoppedPlayingMsg:
+		d.playingId = ""
 	case sectionChangedMsg:
 		d.isFocused = msg.section == sectionDatatable
 		if msg.section == sectionDatatable {

@@ -79,7 +79,10 @@ func (p *player) readMPVEvents(conn net.Conn) {
 
 			switch msg.Event {
 			case "end-file":
+				p.setPlaying(false)
+
 				if msg.Reason != "eof" {
+					p.program.Send(stoppedPlayingMsg{})
 					continue
 				}
 
