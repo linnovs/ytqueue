@@ -1,111 +1,81 @@
 package main
 
 import (
-	"context"
-	"errors"
 	"log/slog"
-	"os/exec"
-	"sync/atomic"
+	"os"
+	"path/filepath"
+	"sync"
 
 	"github.com/adrg/xdg"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-type finishPlayMsg struct{}
-
-var (
-	errAlreadyPlaying   = errors.New("a file is already being played")
-	errPlayerNotRunning = errors.New("player is not running")
-)
+type finishPlayingMsg struct{}
 
 type player struct {
-	playing *atomic.Bool
-	stopFn  *atomic.Value
+	program   *tea.Program
+	playingMu *sync.Mutex
+	playing   bool
+	processMu *sync.Mutex
+	process   *os.Process
+	sockPath  string
+	commandCh chan []string
 }
 
 func newPlayer() *player {
-	return &player{playing: new(atomic.Bool), stopFn: new(atomic.Value)}
+	sockPath, err := xdg.RuntimeFile("ytqueue/mpv.sock")
+	if err != nil {
+		slog.Error("unable to get mpv socket path", slog.String("error", err.Error()))
+		panic(err)
+	}
+
+	sockPath = filepath.Clean(sockPath)
+	commandCh := make(chan []string)
+
+	return &player{
+		playingMu: new(sync.Mutex),
+		processMu: new(sync.Mutex),
+		sockPath:  sockPath,
+		commandCh: commandCh,
+	}
+}
+
+func (p *player) setProgram(program *tea.Program) {
+	p.program = program
 }
 
 func (p *player) play(filePath string) error {
-	if p.playing.Load() {
-		return errAlreadyPlaying
-	}
-
-	logFile, err := xdg.StateFile("ytqueue/mpv.log")
-	if err != nil {
-		return err
-	}
-
-	cmd := exec.CommandContext(
-		context.Background(),
-		"mpv",
-		"--log-file="+logFile,
-		"--keep-open=no",
-		"--idle=no",
-		filePath,
-	) // #nosec G204
-	p.stopFn.Store(cmd.Cancel)
-	p.playing.Store(true)
-
-	defer func() {
-		p.playing.Store(false)
-		p.stopFn.Store(nil)
-	}()
-
-	if err := cmd.Run(); err != nil {
-		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) {
-			slog.Error(
-				"player exited with error",
-				slog.String("stderr", string(exitErr.Stderr)),
-				slog.Int("exitCode", exitErr.ExitCode()),
-			)
-
-			return nil
+	if !p.isRunning() {
+		if err := p.startPlayer(); err != nil {
+			return err
 		}
-
-		return err
 	}
 
-	return nil
+	defer p.setPlaying(true)
+
+	slog.Debug("sending loadfile command to mpv", slog.String("file", filePath))
+
+	return p.sendMPVCommand("loadfile", filePath, "replace")
 }
 
 func (p *player) stop() error {
-	if !p.playing.Load() {
+	if !p.isRunning() || !p.isPlaying() {
 		return nil
 	}
 
-	stopFn := p.stopFn.Load().(func() error)
+	defer p.setPlaying(false)
 
-	if stopFn == nil {
-		return errPlayerNotRunning
-	}
-
-	defer func() {
-		p.playing.Store(false)
-		p.stopFn.Store(nil)
-	}()
-
-	if err := stopFn(); err != nil {
-		return err
-	}
-
-	return nil
+	return p.sendMPVCommand("stop")
 }
 
 func (p *player) quit() tea.Cmd {
 	return func() tea.Msg {
-		stopFn := p.stopFn.Load().(func() error)
-
-		if stopFn == nil {
+		if !p.isRunning() {
 			return nil
 		}
 
-		p.playing.Store(false)
-
-		if err := stopFn(); err != nil {
-			slog.Error("failed to stop player on quit", slog.String("error", err.Error()))
+		if err := p.sendMPVCommand("quit"); err != nil {
+			return errorMsg{err}
 		}
 
 		return nil
