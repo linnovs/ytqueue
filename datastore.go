@@ -71,6 +71,20 @@ func (s *datastore) addVideo(
 	return &video, nil
 }
 
+func (s *datastore) setWatched(ctx context.Context, idStr string) (*database.Video, error) {
+	id, err := idStrToInt(idStr)
+	if err != nil {
+		return nil, err
+	}
+
+	video, err := s.queries.SetWatchedVideo(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return &video, nil
+}
+
 func (s *datastore) toggleWatched(ctx context.Context, idStr string) (*database.Video, error) {
 	id, err := idStrToInt(idStr)
 	if err != nil {
