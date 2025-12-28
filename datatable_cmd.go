@@ -86,7 +86,7 @@ func (d *datatable) playStopRowCmd(id string) tea.Cmd {
 
 		slog.Debug("starting to play video", slog.String("id", id), slog.String("file", file))
 
-		if err := d.player.play(file); err != nil {
+		if err := d.player.play(file, id); err != nil {
 			return errorMsg{err: fmt.Errorf("failed to play file: %w", err)}
 		}
 

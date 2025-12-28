@@ -48,14 +48,14 @@ func (p *player) setProgram(program *tea.Program) {
 	p.program = program
 }
 
-func (p *player) play(filePath string) error {
+func (p *player) play(filePath, id string) error {
 	if !p.isRunning() {
 		if err := p.startPlayer(); err != nil {
 			return err
 		}
 	}
 
-	defer p.setPlaying(true)
+	defer p.setPlaying(true, id)
 
 	slog.Debug("sending loadfile command to mpv", slog.String("file", filePath))
 
