@@ -30,19 +30,19 @@ func footerMsgCmd(msg string, clearAfter time.Duration) tea.Cmd {
 type quitMsg struct{}
 
 type appModel struct {
-	section         sectionType
-	cancelFn        context.CancelFunc
-	keymap          keymap
-	width, height   int
-	help            help.Model
-	urlPrompt       *urlPrompt
-	topbar          topbar
-	downloader      *downloader
-	downloaderModel *downloaderModel
-	datatable       *datatable
-	errorStyle      lipgloss.Style
-	err             error
-	footerMsg       string
+	section       sectionType
+	cancelFn      context.CancelFunc
+	keymap        keymap
+	width, height int
+	help          help.Model
+	urlPrompt     *urlPrompt
+	topbar        topbar
+	downloader    *downloader
+	status        *status
+	datatable     *datatable
+	errorStyle    lipgloss.Style
+	err           error
+	footerMsg     string
 }
 
 type contextFn func() context.Context
@@ -60,16 +60,16 @@ func newModel(
 	}
 
 	return appModel{
-		section:         sectionURLPrompt,
-		cancelFn:        cancelFn,
-		keymap:          newKeymap(),
-		help:            help.New(),
-		urlPrompt:       newURLPrompt(),
-		topbar:          newTopbar(),
-		downloader:      downloader,
-		downloaderModel: newDownloaderModel(cfg.DownloadPath),
-		datatable:       newDatatable(player, queries, getContext),
-		errorStyle:      newErrorStyle(),
+		section:    sectionURLPrompt,
+		cancelFn:   cancelFn,
+		keymap:     newKeymap(),
+		help:       help.New(),
+		urlPrompt:  newURLPrompt(),
+		topbar:     newTopbar(),
+		downloader: downloader,
+		status:     newStatus(cfg.DownloadPath),
+		datatable:  newDatatable(player, queries, getContext),
+		errorStyle: newErrorStyle(),
 	}
 }
 
@@ -77,7 +77,7 @@ func (m appModel) Init() tea.Cmd {
 	return tea.Batch(
 		m.urlPrompt.Init(),
 		m.topbar.Init(),
-		m.downloaderModel.Init(),
+		m.status.Init(),
 		m.datatable.Init(),
 	)
 }
@@ -130,7 +130,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cmds = append(cmds, cmd)
 	m.topbar, cmd = m.topbar.Update(msg)
 	cmds = append(cmds, cmd)
-	m.downloaderModel, cmd = m.downloaderModel.Update(msg)
+	m.status, cmd = m.status.Update(msg)
 	cmds = append(cmds, cmd)
 	m.datatable, cmd = m.datatable.Update(msg)
 	cmds = append(cmds, cmd)
@@ -208,14 +208,14 @@ func (m appModel) View() string {
 
 	topbar := m.topbar.View()
 	urlPrompt := m.urlPrompt.View()
-	downloaderView := m.downloaderModel.View()
+	statusView := m.status.View()
 	footerView := m.footerView()
 
 	h := lipgloss.Height
 
 	topbarHeight := h(topbar)
 	urlPromptHeight := h(urlPrompt)
-	downloaderViewHeight := h(downloaderView)
+	statusViewHeight := h(statusView)
 	footerHeight := h(footerView)
 
 	if footerView == "" {
@@ -223,12 +223,12 @@ func (m appModel) View() string {
 	}
 
 	heightAdjusted := m.height - topbarHeight
-	heightAdjusted -= urlPromptHeight + downloaderViewHeight + footerHeight
+	heightAdjusted -= urlPromptHeight + statusViewHeight + footerHeight
 
 	m.datatable.setHeight(heightAdjusted)
 	dataTable := m.datatable.View()
 
-	verticalItems := []string{topbar, urlPrompt, dataTable, downloaderView}
+	verticalItems := []string{topbar, urlPrompt, dataTable, statusView}
 	if footerView != "" {
 		verticalItems = append(verticalItems, footerView)
 	}

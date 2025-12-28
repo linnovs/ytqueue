@@ -11,7 +11,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-type downloaderModel struct {
+type status struct {
 	queued         int
 	titleStyle     lipgloss.Style
 	titleBarStyle  lipgloss.Style
@@ -32,7 +32,7 @@ type downloaderModel struct {
 
 const filenameWidth = 20
 
-func newDownloaderModel(downloadDir string) *downloaderModel {
+func newStatus(downloadDir string) *status {
 	titleBarStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("250")).
 		Background(lipgloss.Color("0"))
@@ -59,7 +59,7 @@ func newDownloaderModel(downloadDir string) *downloaderModel {
 
 	style := lipgloss.NewStyle().BorderStyle(lipgloss.RoundedBorder())
 
-	return &downloaderModel{
+	return &status{
 		queued:         0,
 		width:          0,
 		titleStyle:     titleStyle,
@@ -76,11 +76,11 @@ func newDownloaderModel(downloadDir string) *downloaderModel {
 	}
 }
 
-func (d *downloaderModel) Init() tea.Cmd {
+func (d *status) Init() tea.Cmd {
 	return tea.Batch(d.progress.Init(), d.filename.Init())
 }
 
-func (d *downloaderModel) Update(msg tea.Msg) (*downloaderModel, tea.Cmd) {
+func (d *status) Update(msg tea.Msg) (*status, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
@@ -148,7 +148,7 @@ func formatSpeed(speed float64) string {
 	}
 }
 
-func (d *downloaderModel) View() string {
+func (d *status) View() string {
 	w := lipgloss.Width
 
 	title := d.titleStyle.Render()
