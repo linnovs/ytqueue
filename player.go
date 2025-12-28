@@ -5,8 +5,10 @@ import (
 	"errors"
 	"log/slog"
 	"os/exec"
+	"sync/atomic"
 
 	"github.com/adrg/xdg"
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 type finishPlayMsg struct{}
@@ -17,16 +19,16 @@ var (
 )
 
 type player struct {
-	playing bool
-	stopFn  func() error
+	playing *atomic.Bool
+	stopFn  *atomic.Value
 }
 
 func newPlayer() *player {
-	return &player{}
+	return &player{playing: new(atomic.Bool), stopFn: new(atomic.Value)}
 }
 
 func (p *player) play(filePath string) error {
-	if p.playing {
+	if p.playing.Load() {
 		return errAlreadyPlaying
 	}
 
@@ -43,8 +45,13 @@ func (p *player) play(filePath string) error {
 		"--idle=no",
 		filePath,
 	) // #nosec G204
-	p.stopFn = cmd.Cancel
-	p.playing = true
+	p.stopFn.Store(cmd.Cancel)
+	p.playing.Store(true)
+
+	defer func() {
+		p.playing.Store(false)
+		p.stopFn.Store(nil)
+	}()
 
 	if err := cmd.Run(); err != nil {
 		var exitErr *exec.ExitError
@@ -65,20 +72,22 @@ func (p *player) play(filePath string) error {
 }
 
 func (p *player) stop() error {
-	if !p.playing {
+	if !p.playing.Load() {
 		return nil
 	}
 
-	if p.stopFn == nil {
+	stopFn := p.stopFn.Load().(func() error)
+
+	if stopFn == nil {
 		return errPlayerNotRunning
 	}
 
 	defer func() {
-		p.playing = false
-		p.stopFn = nil
+		p.playing.Store(false)
+		p.stopFn.Store(nil)
 	}()
 
-	if err := p.stopFn(); err != nil {
+	if err := stopFn(); err != nil {
 		return err
 	}
 
@@ -87,13 +96,15 @@ func (p *player) stop() error {
 
 func (p *player) quit() tea.Cmd {
 	return func() tea.Msg {
-		if p.stopFn == nil {
+		stopFn := p.stopFn.Load().(func() error)
+
+		if stopFn == nil {
 			return nil
 		}
 
-		p.playing = false
+		p.playing.Store(false)
 
-		if err := p.stopFn(); err != nil {
+		if err := stopFn(); err != nil {
 			slog.Error("failed to stop player on quit", slog.String("error", err.Error()))
 		}
 

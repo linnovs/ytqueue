@@ -44,7 +44,7 @@ type datatable struct {
 	rows             []row
 	cursor           int
 	isFocused        bool
-	playingRow       int
+	playingId        string
 	player           *player
 	deleteConfirm    bool
 }
@@ -67,8 +67,6 @@ func newDatatable(queries *database.Queries, getCtx contextFn) *datatable {
 		styles:         styles,
 		keymap:         newDatatableKeymap(),
 		columns:        []column{colWatched, colName, colURL, colLocation},
-		cursor:         0,
-		playingRow:     -1,
 		player:         newPlayer(),
 	}
 
@@ -86,6 +84,10 @@ func (d *datatable) calculateColWidth() {
 	d.widths[colURL] = defaultWidth + colPadding
 	d.widths[colLocation] = defaultWidth + colPadding
 	d.widths[colWatched] = isWatchedColWidth + colPadding
+}
+
+func (d *datatable) playingIDIndexFunc(r row) bool {
+	return r[colID] == d.playingId
 }
 
 func (d *datatable) updateViewport() {
@@ -134,13 +136,7 @@ func (d *datatable) Update(msg tea.Msg) (*datatable, tea.Cmd) {
 	case finishDownloadMsg:
 		return d, d.newVideoCmd(msg.filename, msg.url, msg.downloadPath)
 	case finishPlayMsg:
-		cmds = append(cmds, d.setVideoWatchedCmd(d.playingRow))
-
-		if d.playingRow > 0 {
-			cmds = append(cmds, d.playStopRowCmd(d.playingRow-1))
-		} else {
-			d.playingRow--
-		}
+		cmds = append(cmds, d.playNextOrStopCmd())
 	case sectionChangedMsg:
 		d.isFocused = msg.section == sectionDatatable
 		if msg.section == sectionDatatable {
@@ -195,7 +191,7 @@ func (d *datatable) renderRow(r int) string {
 		if colKey == colWatched {
 			style = style.Align(lipgloss.Center)
 
-			if d.playingRow == r {
+			if d.playingId == d.rows[r][colID] {
 				colValue = "Playing"
 				style = style.Foreground(lipgloss.Color("0")).
 					Background(lipgloss.Color("10")).

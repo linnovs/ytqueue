@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"slices"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -23,9 +24,9 @@ func (d *datatable) newVideoCmd(name, url, location string) tea.Cmd {
 	}
 }
 
-func (d *datatable) playStopRowCmd(cursor int) tea.Cmd {
+func (d *datatable) playStopRowCmd(id string) tea.Cmd {
 	return func() tea.Msg {
-		if d.playingRow == cursor && d.player.playing {
+		if d.playingId == id && d.player.playing.Load() {
 			if err := d.player.stop(); err != nil {
 				return errorMsg{err: fmt.Errorf("failed to stop player: %w", err)}
 			}
@@ -33,7 +34,9 @@ func (d *datatable) playStopRowCmd(cursor int) tea.Cmd {
 			return finishPlayMsg{}
 		}
 
-		row := d.rows[cursor]
+		d.playingId = id
+		idx := slices.IndexFunc(d.rows, d.playingIDIndexFunc)
+		row := d.rows[idx]
 		filepath := path.Join(row[colLocation], row[colName])
 		filepath = path.Clean(filepath)
 
@@ -46,14 +49,6 @@ func (d *datatable) playStopRowCmd(cursor int) tea.Cmd {
 			return errorMsg{err: fmt.Errorf("failed to access file: %w", err)}
 		}
 
-		if d.playingRow == cursor {
-			d.playingRow = -1
-
-			return nil
-		}
-
-		d.playingRow = cursor
-
 		if err := d.player.play(filepath); err != nil {
 			return errorMsg{err: fmt.Errorf("failed to play file: %w", err)}
 		}
@@ -62,20 +57,34 @@ func (d *datatable) playStopRowCmd(cursor int) tea.Cmd {
 	}
 }
 
-func (d *datatable) setVideoWatchedCmd(cursor int) tea.Cmd {
+func (d *datatable) setVideoWatched(id string) (int, error) {
+	video, err := d.datastore.setWatched(d.getCtx(), id)
+	if err != nil {
+		return 0, err
+	}
+
+	d.rowMu.Lock()
+	idx := slices.IndexFunc(d.rows, d.playingIDIndexFunc)
+	d.rows[idx] = videoToRow(*video)
+	d.rowMu.Unlock()
+
+	return idx, nil
+}
+
+func (d *datatable) playNextOrStopCmd() tea.Cmd {
 	return func() tea.Msg {
-		video, err := d.datastore.setWatched(d.getCtx(), d.rows[cursor][colID])
+		idx, err := d.setVideoWatched(d.playingId)
 		if err != nil {
-			return errorMsg{err: fmt.Errorf("failed to set video as watched: %w", err)}
+			return errorMsg{fmt.Errorf("failed to set video as watched: %w", err)}
 		}
 
-		videoRow := videoToRow(*video)
+		if idx <= 0 {
+			d.playingId = ""
 
-		rows := append([]row{}, d.rows...)
-		rows[cursor] = videoRow
-		d.setRows(rows)
+			return nil
+		}
 
-		return nil
+		return d.playStopRowCmd(d.rows[idx-1][colID])()
 	}
 }
 
