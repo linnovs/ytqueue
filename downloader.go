@@ -8,7 +8,7 @@ import (
 	"io"
 	"log/slog"
 	"os/exec"
-	"path"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -64,7 +64,7 @@ func (d *downloader) readStdout(stdoutPipe io.ReadCloser, url string) {
 			}
 		case "finished":
 			d.p.Send(finishDownloadMsg{
-				filename:     path.Base(msg.Filename),
+				filename:     filepath.Base(msg.Filename),
 				downloadPath: d.downloadDir,
 				url:          url,
 			})

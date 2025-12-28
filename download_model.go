@@ -3,7 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
-	"path"
+	"path/filepath"
 	"time"
 
 	"github.com/charmbracelet/bubbles/progress"
@@ -106,7 +106,7 @@ func (d *downloaderModel) Update(msg tea.Msg) (*downloaderModel, tea.Cmd) {
 		d.speed = msg.Speed
 		d.elapsed = msg.Elapsed * float64(time.Second)
 		d.eta = msg.Eta * float64(time.Second)
-		filename := path.Base(msg.Filename)
+		filename := filepath.Base(msg.Filename)
 		percent := downloaded / total
 		cmds = append(cmds, d.progress.SetPercent(percent), d.filename.updateText(filename))
 	case finishDownloadMsg:

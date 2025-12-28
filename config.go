@@ -3,7 +3,7 @@ package main
 import (
 	"log/slog"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/adrg/xdg"
@@ -42,7 +42,7 @@ func loadConfig() (*config, error) {
 	var isHome bool
 
 	if cfg.DownloadPath, isHome = strings.CutPrefix(cfg.DownloadPath, "~"); isHome {
-		cfg.DownloadPath = path.Join(xdg.Home, cfg.DownloadPath)
+		cfg.DownloadPath = filepath.Join(xdg.Home, cfg.DownloadPath)
 	}
 
 	if cfg.TempName == "" {

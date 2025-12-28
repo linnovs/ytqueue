@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path"
+	"path/filepath"
 	"slices"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -37,8 +37,8 @@ func (d *datatable) playStopRowCmd(id string) tea.Cmd {
 		d.playingId = id
 		idx := slices.IndexFunc(d.rows, d.playingIDIndexFunc)
 		row := d.rows[idx]
-		filepath := path.Join(row[colLocation], row[colName])
-		filepath = path.Clean(filepath)
+		fpath := filepath.Join(row[colLocation], row[colName])
+		fpath = filepath.Clean(fpath)
 
 		_, err := os.Stat(filepath) // #nosec G104
 		if err != nil {
