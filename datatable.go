@@ -134,8 +134,8 @@ func (d *datatable) Update(msg tea.Msg) (*datatable, tea.Cmd) {
 		d.viewport.Width = d.width
 		d.calculateColWidth()
 	case finishDownloadMsg:
-		return d, d.newVideoCmd(msg.filename, msg.url, msg.downloadPath)
-	case finishPlayMsg:
+		cmds = append(cmds, d.newVideoCmd(msg.filename, msg.url, msg.downloadPath))
+	case finishPlayingMsg:
 		cmds = append(cmds, d.playNextOrStopCmd())
 	case sectionChangedMsg:
 		d.isFocused = msg.section == sectionDatatable

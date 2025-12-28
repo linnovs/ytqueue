@@ -31,6 +31,7 @@ type mpvEvent struct {
 	Event     string `json:"event"`
 	Error     string `json:"error,omitempty"`
 	RequestID *int   `json:"request_id,omitempty"`
+	Reason    string `json:"reason,omitempty"`
 }
 
 func (p *player) sendMPVCommand(command ...string) error {
@@ -78,6 +79,10 @@ func (p *player) readMPVEvents(conn net.Conn) {
 
 			switch msg.Event {
 			case "end-file":
+				if msg.Reason != "eof" {
+					continue
+				}
+
 				p.program.Send(finishPlayingMsg{})
 			}
 		}

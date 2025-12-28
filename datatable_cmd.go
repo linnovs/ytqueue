@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"slices"
@@ -26,21 +27,42 @@ func (d *datatable) newVideoCmd(name, url, location string) tea.Cmd {
 
 func (d *datatable) playStopRowCmd(id string) tea.Cmd {
 	return func() tea.Msg {
-		if d.playingId == id && d.player.playing.Load() {
+		if d.player.isPlaying() {
 			if err := d.player.stop(); err != nil {
 				return errorMsg{err: fmt.Errorf("failed to stop player: %w", err)}
 			}
+		}
 
-			return finishPlayMsg{}
+		slog.Debug(
+			"playStopRowCmd",
+			slog.String("currentPlayingId", d.playingId),
+			slog.String("requestedId", id),
+		)
+
+		if d.playingId == id {
+			d.playingId = ""
+
+			return nil
 		}
 
 		d.playingId = id
-		idx := slices.IndexFunc(d.rows, d.playingIDIndexFunc)
-		row := d.rows[idx]
-		fpath := filepath.Join(row[colLocation], row[colName])
-		fpath = filepath.Clean(fpath)
 
-		_, err := os.Stat(filepath) // #nosec G104
+		idx := slices.IndexFunc(d.rows, d.playingIDIndexFunc)
+		if idx == -1 {
+			return errorMsg{errors.New("playing video not found in datatable")}
+		}
+
+		slog.Debug(
+			"playing video found",
+			slog.Int("index", idx),
+			slog.Int("totalRows", len(d.rows)),
+		)
+
+		row := d.rows[idx]
+		file := filepath.Join(row[colLocation], row[colName])
+		file = filepath.Clean(file)
+
+		_, err := os.Stat(file)
 		if err != nil {
 			if errors.Is(err, os.ErrNotExist) {
 				return errorMsg{errors.New("file does not exist")}
@@ -49,11 +71,13 @@ func (d *datatable) playStopRowCmd(id string) tea.Cmd {
 			return errorMsg{err: fmt.Errorf("failed to access file: %w", err)}
 		}
 
-		if err := d.player.play(filepath); err != nil {
+		slog.Debug("starting to play video", slog.String("id", id), slog.String("file", file))
+
+		if err := d.player.play(file); err != nil {
 			return errorMsg{err: fmt.Errorf("failed to play file: %w", err)}
 		}
 
-		return finishPlayMsg{}
+		return nil
 	}
 }
 
