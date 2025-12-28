@@ -30,6 +30,7 @@ type row map[column]string
 
 type datatable struct {
 	width            int
+	nameTruncateLeft int
 	widths           map[column]int
 	getCtx           contextFn
 	datastore        *datastore
@@ -204,6 +205,11 @@ func (d *datatable) renderRow(r int) string {
 		}
 
 		cellWidth := d.widths[colKey] - style.GetHorizontalFrameSize()
+
+		if colKey == colName && d.nameTruncateLeft > 0 && r == d.cursor {
+			colValue = runewidth.TruncateLeft(colValue, d.nameTruncateLeft, "…")
+		}
+
 		s.WriteString(style.Render(runewidth.Truncate(colValue, cellWidth, "…")))
 	}
 

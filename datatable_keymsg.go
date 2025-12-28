@@ -12,6 +12,8 @@ func (d *datatable) keyMsgHandler(msg tea.KeyMsg) tea.Cmd {
 		return cmd
 	}
 
+	const nameScrollAmount = 5
+
 	switch {
 	case key.Matches(msg, key.NewBinding(key.WithKeys("esc"))):
 		d.deleteConfirm = false
@@ -19,6 +21,10 @@ func (d *datatable) keyMsgHandler(msg tea.KeyMsg) tea.Cmd {
 		d.lineUp(1)
 	case key.Matches(msg, d.keymap.lineDown):
 		d.lineDown(1)
+	case key.Matches(msg, d.keymap.nameScrollLeft):
+		d.nameScrollLeft(nameScrollAmount)
+	case key.Matches(msg, d.keymap.nameScrollRight):
+		d.nameScrollRight(nameScrollAmount)
 	case key.Matches(msg, d.keymap.pageUp):
 		d.pageUp()
 	case key.Matches(msg, d.keymap.pageDown):

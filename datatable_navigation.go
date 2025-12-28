@@ -15,13 +15,23 @@ func (d *datatable) scrollDown() {
 func (d *datatable) lineUp(n int) {
 	d.deleteConfirm = false
 	d.cursor = clamp(d.cursor-n, 0, len(d.rows)-1)
+	d.nameTruncateLeft = 0
 	d.scrollUp()
 }
 
 func (d *datatable) lineDown(n int) {
 	d.deleteConfirm = false
 	d.cursor = clamp(d.cursor+n, 0, len(d.rows)-1)
+	d.nameTruncateLeft = 0
 	d.scrollDown()
+}
+
+func (d *datatable) nameScrollLeft(n int) {
+	d.nameTruncateLeft = clamp(d.nameTruncateLeft-n, 0, d.widths[colName])
+}
+
+func (d *datatable) nameScrollRight(n int) {
+	d.nameTruncateLeft = clamp(d.nameTruncateLeft+n, 0, d.widths[colName])
 }
 
 func (d *datatable) pageUp() {
