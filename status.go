@@ -9,25 +9,30 @@ import (
 	"github.com/charmbracelet/bubbles/progress"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"golang.org/x/sys/unix"
 )
 
 type status struct {
-	queued         int
-	titleStyle     lipgloss.Style
-	titleBarStyle  lipgloss.Style
-	inqueueStyle   lipgloss.Style
-	queueSizeStyle lipgloss.Style
-	statusStyle    lipgloss.Style
-	etaStyle       lipgloss.Style
-	style          lipgloss.Style
-	downloadPath   string
-	progress       progress.Model
-	width          int
-	status         downloadStatus
-	filename       *runningTextModel
-	speed          float64
-	elapsed        float64
-	eta            float64
+	queued                int
+	titleStyle            lipgloss.Style
+	titleBarStyle         lipgloss.Style
+	inqueueStyle          lipgloss.Style
+	queueSizeStyle        lipgloss.Style
+	availableSpaceStyle   lipgloss.Style
+	freeSpaceStyle        lipgloss.Style
+	statusStyle           lipgloss.Style
+	etaStyle              lipgloss.Style
+	style                 lipgloss.Style
+	downloadPath          string
+	downloadDir           string
+	downloadPathFreeSpace uint64
+	progress              progress.Model
+	width                 int
+	status                downloadStatus
+	filename              *runningTextModel
+	speed                 float64
+	elapsed               float64
+	eta                   float64
 }
 
 const filenameWidth = 20
@@ -44,6 +49,8 @@ func newStatus(downloadDir string) *status {
 	inqueueStyle := componentStyle.Background(lipgloss.Color("30")).SetString("INQUEUE")
 	queueSizeStyle := componentStyle.Background(lipgloss.Color("39"))
 	filenameStyle := componentStyle.Foreground(lipgloss.Color("39"))
+	availableSpaceStyle := componentStyle.Background(lipgloss.Color("63")).SetString("AVAILABLE")
+	freeSpaceStyle := componentStyle.Background(lipgloss.Color("69"))
 
 	const statusPadding = 2
 	statusStyle := componentStyle.Width(len(downloadStatusDownloading.String()) + statusPadding).
@@ -60,24 +67,41 @@ func newStatus(downloadDir string) *status {
 	style := lipgloss.NewStyle().BorderStyle(lipgloss.RoundedBorder())
 
 	return &status{
-		queued:         0,
-		width:          0,
-		titleStyle:     titleStyle,
-		titleBarStyle:  titleBarStyle,
-		inqueueStyle:   inqueueStyle,
-		queueSizeStyle: queueSizeStyle,
-		filename:       newRunningTextModel(filenameWidth, filenameStyle),
-		statusStyle:    statusStyle,
-		etaStyle:       etaStyle,
-		style:          style,
-		downloadPath:   downloadPath,
-		progress:       progress.New(progress.WithDefaultGradient()),
-		status:         downloadStatusIdle,
+		queued:              0,
+		width:               0,
+		titleStyle:          titleStyle,
+		titleBarStyle:       titleBarStyle,
+		inqueueStyle:        inqueueStyle,
+		queueSizeStyle:      queueSizeStyle,
+		availableSpaceStyle: availableSpaceStyle,
+		freeSpaceStyle:      freeSpaceStyle,
+		filename:            newRunningTextModel(filenameWidth, filenameStyle),
+		statusStyle:         statusStyle,
+		etaStyle:            etaStyle,
+		style:               style,
+		downloadPath:        downloadPath,
+		downloadDir:         downloadDir,
+		progress:            progress.New(progress.WithDefaultGradient()),
+		status:              downloadStatusIdle,
+	}
+}
+
+func (d *status) getFreeSpaceCmd() tea.Cmd {
+	return func() tea.Msg {
+		var stat unix.Statfs_t
+
+		if err := unix.Statfs(d.downloadDir, &stat); err != nil {
+			return errorMsg{fmt.Errorf("failed to get free space: %w", err)}
+		}
+
+		d.downloadPathFreeSpace = stat.Bavail * uint64(stat.Bsize)
+
+		return nil
 	}
 }
 
 func (d *status) Init() tea.Cmd {
-	return tea.Batch(d.progress.Init(), d.filename.Init())
+	return tea.Batch(d.progress.Init(), d.filename.Init(), d.getFreeSpaceCmd())
 }
 
 func (d *status) Update(msg tea.Msg) (*status, tea.Cmd) {
@@ -93,7 +117,7 @@ func (d *status) Update(msg tea.Msg) (*status, tea.Cmd) {
 	case downloadCompletedMsg:
 		d.queued--
 		d.status, d.speed, d.elapsed, d.eta = downloadStatusIdle, 0, 0, 0
-		cmds = append(cmds, d.progress.SetPercent(0))
+		cmds = append(cmds, d.progress.SetPercent(0), d.getFreeSpaceCmd())
 	case downloadErrorMsg:
 		d.status = downloadStatusError
 		err := errors.New(msg.msg)
@@ -127,24 +151,39 @@ func (d *status) Update(msg tea.Msg) (*status, tea.Cmd) {
 }
 
 const (
-	kibps = 1024
-	mibps = 1024 * 1024
-	gibps = 1024 * 1024 * 1024
-	tibps = 1024 * 1024 * 1024 * 1024
+	kibSize = 1024
+	mibSize = 1024 * 1024
+	gibSize = 1024 * 1024 * 1024
+	tibSize = 1024 * 1024 * 1024 * 1024
 )
 
 func formatSpeed(speed float64) string {
 	switch {
-	case speed >= tibps:
-		return fmt.Sprintf("%.2f TiB/s", speed/tibps)
-	case speed >= gibps:
-		return fmt.Sprintf("%.2f GiB/s", speed/gibps)
-	case speed >= mibps:
-		return fmt.Sprintf("%.2f MiB/s", speed/mibps)
-	case speed >= kibps:
+	case speed >= tibSize:
+		return fmt.Sprintf("%.2f TiB/s", speed/tibSize)
+	case speed >= gibSize:
+		return fmt.Sprintf("%.2f GiB/s", speed/gibSize)
+	case speed >= mibSize:
+		return fmt.Sprintf("%.2f MiB/s", speed/mibSize)
+	case speed >= kibSize:
 		fallthrough
 	default:
-		return fmt.Sprintf("%.2f KiB/s", speed/kibps)
+		return fmt.Sprintf("%.2f KiB/s", speed/kibSize)
+	}
+}
+
+func formatBytes(bytes uint64) string {
+	switch {
+	case bytes >= tibSize:
+		return fmt.Sprintf("%.2f TiB", float64(bytes)/tibSize)
+	case bytes >= gibSize:
+		return fmt.Sprintf("%.2f GiB", float64(bytes)/gibSize)
+	case bytes >= mibSize:
+		return fmt.Sprintf("%.2f MiB", float64(bytes)/mibSize)
+	case bytes >= kibSize:
+		fallthrough
+	default:
+		return fmt.Sprintf("%.2f KiB", float64(bytes)/kibSize)
 	}
 }
 
@@ -152,12 +191,14 @@ func (d *status) View() string {
 	w := lipgloss.Width
 
 	title := d.titleStyle.Render()
-	inqueue := d.inqueueStyle.Render()
 	queueSize := d.queueSizeStyle.Render(fmt.Sprint(d.queued))
+	inqueue := lipgloss.JoinHorizontal(lipgloss.Top, d.inqueueStyle.Render(), queueSize)
+	freeSpace := d.freeSpaceStyle.Render(formatBytes(d.downloadPathFreeSpace))
+	available := lipgloss.JoinHorizontal(lipgloss.Top, d.availableSpaceStyle.Render(), freeSpace)
 	info := lipgloss.NewStyle().
 		Width(d.width - w(title)).
 		AlignHorizontal(lipgloss.Right).
-		Render(lipgloss.JoinHorizontal(lipgloss.Top, d.downloadPath, inqueue, queueSize))
+		Render(lipgloss.JoinHorizontal(lipgloss.Top, d.downloadPath, available, inqueue))
 	titleBar := d.titleBarStyle.Render(lipgloss.JoinHorizontal(lipgloss.Top, title, info))
 
 	var filename, speed, elapsed, eta string
