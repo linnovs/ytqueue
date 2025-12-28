@@ -20,7 +20,7 @@ func newTopbar() topbar {
 	titleStyle := lipgloss.NewStyle().
 		Background(lipgloss.Color("91")).
 		Padding(0, 1).
-		SetString("Short Film Downloader")
+		SetString("Video Downloader")
 	versionStyle := lipgloss.NewStyle().
 		Background(lipgloss.Color("177")).
 		Padding(0, 1)
