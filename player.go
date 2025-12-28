@@ -84,3 +84,19 @@ func (p *player) stop() error {
 
 	return nil
 }
+
+func (p *player) quit() tea.Cmd {
+	return func() tea.Msg {
+		if p.stopFn == nil {
+			return nil
+		}
+
+		p.playing = false
+
+		if err := p.stopFn(); err != nil {
+			slog.Error("failed to stop player on quit", slog.String("error", err.Error()))
+		}
+
+		return nil
+	}
+}

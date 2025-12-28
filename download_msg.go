@@ -46,7 +46,7 @@ type downloadProgressMsg struct {
 type downloadStatus int
 
 func (s downloadStatus) String() string {
-	return [...]string{"IDLE", "PREPARING", "DOWNLOADING", "FINISHED", "ERROR"}[s]
+	return [...]string{"IDLE", "PREPARING", "DOWNLOADING", "FINISHED", "ERROR", "QUITTING"}[s]
 }
 
 const (
@@ -55,4 +55,5 @@ const (
 	downloadStatusDownloading
 	downloadStatusFinished
 	downloadStatusError
+	downloadStatusQuitting
 )

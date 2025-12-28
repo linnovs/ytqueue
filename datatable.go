@@ -148,6 +148,8 @@ func (d *datatable) Update(msg tea.Msg) (*datatable, tea.Cmd) {
 		} else {
 			d.styles = d.styles.UnsetBorderForeground()
 		}
+	case quitMsg:
+		cmds = append(cmds, d.player.quit())
 	case tea.KeyMsg:
 		cmds = append(cmds, d.keyMsgHandler(msg))
 	}

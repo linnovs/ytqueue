@@ -111,6 +111,8 @@ func (d *downloaderModel) Update(msg tea.Msg) (*downloaderModel, tea.Cmd) {
 		cmds = append(cmds, d.progress.SetPercent(percent), d.filename.updateText(filename))
 	case finishDownloadMsg:
 		d.status = downloadStatusFinished
+	case quitMsg:
+		d.status = downloadStatusQuitting
 	case progress.FrameMsg:
 		progressModel, cmd := d.progress.Update(msg)
 		cmds = append(cmds, cmd)

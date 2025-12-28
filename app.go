@@ -16,6 +16,8 @@ var activeBorderColor = lipgloss.Color("99") // nolint: gochecknoglobals
 
 type waitingMsg struct{}
 
+type quitMsg struct{}
+
 type appModel struct {
 	section         sectionType
 	cancelFn        context.CancelFunc
@@ -69,12 +71,14 @@ func (m appModel) Init() tea.Cmd {
 }
 
 func (m appModel) exitCmd() tea.Cmd {
-	return func() tea.Msg {
+	return tea.Sequence(func() tea.Msg {
+		return quitMsg{}
+	}, func() tea.Msg {
 		m.cancelFn()
 		m.downloader.stop()
 
-		return tea.Quit()
-	}
+		return nil
+	}, tea.Quit)
 }
 
 func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
