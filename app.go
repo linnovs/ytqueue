@@ -37,7 +37,8 @@ type appModel struct {
 type contextFn func() context.Context
 
 func newModel(
-	d *downloader,
+	downloader *downloader,
+	player *player,
 	ctx context.Context,
 	cancelFn context.CancelFunc,
 	queries *database.Queries,
@@ -54,9 +55,9 @@ func newModel(
 		help:            help.New(),
 		urlPrompt:       newURLPrompt(),
 		topbar:          newTopbar(),
-		downloader:      d,
+		downloader:      downloader,
 		downloaderModel: newDownloaderModel(cfg.DownloadPath),
-		datatable:       newDatatable(queries, getContext),
+		datatable:       newDatatable(player, queries, getContext),
 		errorStyle:      newErrorStyle(),
 	}
 }

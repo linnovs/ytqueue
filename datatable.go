@@ -49,7 +49,7 @@ type datatable struct {
 	deleteConfirm    bool
 }
 
-func newDatatable(queries *database.Queries, getCtx contextFn) *datatable {
+func newDatatable(player *player, queries *database.Queries, getCtx contextFn) *datatable {
 	// minus topbar, urlPrompt, downloaderView, datatable's header (include borders)
 	const defaultViewportHeight = minHeight - 1 - 3 - 4 - 4
 
@@ -67,7 +67,7 @@ func newDatatable(queries *database.Queries, getCtx contextFn) *datatable {
 		styles:         styles,
 		keymap:         newDatatableKeymap(),
 		columns:        []column{colWatched, colName, colURL, colLocation},
-		player:         newPlayer(),
+		player:         player,
 	}
 
 	return d

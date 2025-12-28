@@ -58,6 +58,7 @@ func runApp() int {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	queries, err := database.Prepare(ctx, db)
 	if err != nil {
@@ -68,10 +69,11 @@ func runApp() int {
 	handler := slog.NewTextHandler(out, &slog.HandlerOptions{Level: slog.LevelDebug})
 	slog.SetDefault(slog.New(handler))
 
-
 	d := newDownloader(cfg)
-	p := tea.NewProgram(newModel(d, ctx, cancel, queries, cfg), tea.WithAltScreen())
+	player := newPlayer()
+	p := tea.NewProgram(newModel(d, player, ctx, cancel, queries, cfg), tea.WithAltScreen())
 	d.setProgram(p)
+	player.setProgram(p)
 
 	go d.start(ctx)
 
