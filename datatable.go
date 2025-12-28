@@ -112,18 +112,7 @@ func (d *datatable) setRows(rows []row) {
 }
 
 func (d *datatable) Init() tea.Cmd {
-	return func() tea.Msg {
-		ctx := d.getCtx()
-
-		videos, err := d.datastore.getVideos(ctx)
-		if err != nil {
-			return errorMsg{err: err}
-		}
-
-		d.setRows(videosToRows(videos))
-
-		return nil
-	}
+	return d.refreshRowsCmd()
 }
 
 func (d *datatable) Update(msg tea.Msg) (*datatable, tea.Cmd) {

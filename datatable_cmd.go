@@ -11,6 +11,19 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+func (d *datatable) refreshRowsCmd() tea.Cmd {
+	return tea.Sequence(func() tea.Msg {
+		videos, err := d.datastore.getVideos(d.getCtx())
+		if err != nil {
+			return errorMsg{err: err}
+		}
+
+		d.setRows(videosToRows(videos))
+
+		return nil
+	}, footerMsgCmd("Refreshed video list", 0))
+}
+
 func (d *datatable) newVideoCmd(name, url, location string) tea.Cmd {
 	return func() tea.Msg {
 		video, err := d.datastore.addVideo(d.getCtx(), name, url, location)
@@ -138,6 +151,11 @@ func (d *datatable) deleteRowCmd(cursor int) tea.Cmd {
 		}
 
 		d.setRows(rows)
+
+		fname := filepath.Clean(filepath.Join(row[colLocation], row[colName]))
+		if err := os.Remove(fname); err != nil {
+			return errorMsg{fmt.Errorf("failed to delete video file: %w", err)}
+		}
 
 		return nil
 	}
