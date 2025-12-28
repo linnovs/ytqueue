@@ -105,6 +105,10 @@ func (p *player) writeMPVCommands(conn net.Conn) {
 
 		if _, err := conn.Write(append(data, '\n')); err != nil {
 			if errors.Is(err, net.ErrClosed) {
+				go func() {
+					p.commandCh <- cmd
+				}()
+
 				return
 			}
 
