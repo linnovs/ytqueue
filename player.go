@@ -69,7 +69,7 @@ func (p *player) stop() error {
 
 	defer p.setPlaying(false)
 
-	return p.sendMPVCommand("stop")
+	return p.sendMPVCommand("quit")
 }
 
 func (p *player) quit() tea.Cmd {
