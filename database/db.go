@@ -33,6 +33,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getVideosStmt, err = db.PrepareContext(ctx, getVideos); err != nil {
 		return nil, fmt.Errorf("error preparing query GetVideos: %w", err)
 	}
+	if q.setWatchedVideoStmt, err = db.PrepareContext(ctx, setWatchedVideo); err != nil {
+		return nil, fmt.Errorf("error preparing query SetWatchedVideo: %w", err)
+	}
 	if q.toggleWatchedStatusStmt, err = db.PrepareContext(ctx, toggleWatchedStatus); err != nil {
 		return nil, fmt.Errorf("error preparing query ToggleWatchedStatus: %w", err)
 	}
@@ -54,6 +57,11 @@ func (q *Queries) Close() error {
 	if q.getVideosStmt != nil {
 		if cerr := q.getVideosStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getVideosStmt: %w", cerr)
+		}
+	}
+	if q.setWatchedVideoStmt != nil {
+		if cerr := q.setWatchedVideoStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing setWatchedVideoStmt: %w", cerr)
 		}
 	}
 	if q.toggleWatchedStatusStmt != nil {
@@ -103,6 +111,7 @@ type Queries struct {
 	addVideoStmt            *sql.Stmt
 	deleteVideoStmt         *sql.Stmt
 	getVideosStmt           *sql.Stmt
+	setWatchedVideoStmt     *sql.Stmt
 	toggleWatchedStatusStmt *sql.Stmt
 }
 
@@ -113,6 +122,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		addVideoStmt:            q.addVideoStmt,
 		deleteVideoStmt:         q.deleteVideoStmt,
 		getVideosStmt:           q.getVideosStmt,
+		setWatchedVideoStmt:     q.setWatchedVideoStmt,
 		toggleWatchedStatusStmt: q.toggleWatchedStatusStmt,
 	}
 }

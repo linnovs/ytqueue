@@ -7,5 +7,8 @@ INSERT INTO videos (name, url, location) values (?, ?, ?) RETURNING *;
 -- name: ToggleWatchedStatus :one
 UPDATE videos SET is_watched = not is_watched WHERE id = ? RETURNING *;
 
+-- name: SetWatchedVideo :one
+UPDATE videos SET is_watched = true WHERE id = ? RETURNING *;
+
 -- name: DeleteVideo :exec
 DELETE FROM videos WHERE id = ?;
