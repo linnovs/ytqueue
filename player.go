@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"log/slog"
-	"os"
 	"os/exec"
 
 	"github.com/adrg/xdg"
@@ -36,19 +35,14 @@ func (p *player) play(filePath string) error {
 		return err
 	}
 
-	f, err := os.Create(logFile) // #nosec G304
-	if err != nil {
-		return err
-	}
-
 	cmd := exec.CommandContext(
 		context.Background(),
 		"mpv",
+		"--log-file="+logFile,
 		"--keep-open=no",
 		"--idle=no",
 		filePath,
 	) // #nosec G204
-	cmd.Stdout = f
 	p.stopFn = cmd.Cancel
 	p.playing = true
 
