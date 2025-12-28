@@ -62,7 +62,7 @@ func (d *downloader) readStdout(stdoutPipe io.ReadCloser, url string) {
 				d.p.Send(msg)
 			default:
 			}
-		case "finished":
+		case "after_move":
 			d.p.Send(finishDownloadMsg{
 				filename:     filepath.Base(msg.Filename),
 				downloadPath: d.downloadDir,
@@ -91,6 +91,8 @@ func (d *downloader) download(ctx context.Context, url string) {
 		"yt-dlp",
 		"--concurrent-fragments",
 		concurrentFragments,
+		"--print",
+		`after_move:{"status": "after_move", "filename": "%(filepath)s"}`,
 		"--progress",
 		"--progress-template",
 		"%(progress)j",
