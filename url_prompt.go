@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/url"
+	"strings"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/spinner"
@@ -79,7 +80,11 @@ func (p *urlPrompt) Update(msg tea.Msg) (*urlPrompt, tea.Cmd) {
 		case key.Matches(msg, p.keymap.clear):
 			p.prompt.Reset()
 		case key.Matches(msg, p.keymap.submit):
-			filmUrl, err := url.Parse(p.prompt.Value())
+			if p.prompt.Value() == "" {
+				break
+			}
+
+			filmUrl, err := url.Parse(strings.TrimSpace(p.prompt.Value()))
 			if err != nil {
 				return p, errorCmd(err)
 			}
