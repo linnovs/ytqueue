@@ -23,7 +23,9 @@ func init() {
 			case "vcs.revision":
 				commit = setting.Value[:7]
 			case "vcs.modified":
-				version += "-dev"
+				if setting.Value == "true" {
+					version += "-dev"
+				}
 			}
 		}
 	}
