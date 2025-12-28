@@ -174,6 +174,6 @@ func (d *downloader) start(ctx context.Context) {
 }
 
 func (d *downloader) stop() {
-	d.p.Send(waitingMsg{})
+	d.p.Send(footerMsg{"Waiting for downloads to finish..."})
 	d.wg.Wait()
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
@@ -14,7 +15,17 @@ import (
 
 var activeBorderColor = lipgloss.Color("99") // nolint: gochecknoglobals
 
-type waitingMsg struct{}
+type footerMsg struct{ msg string }
+
+func footerMsgCmd(msg string, clearAfter time.Duration) tea.Cmd {
+	if clearAfter == 0 {
+		clearAfter = time.Second * 3
+	}
+
+	return tea.Sequence(func() tea.Msg {
+		return footerMsg{msg: msg}
+	}, tea.Tick(clearAfter, func(t time.Time) tea.Msg { return footerMsg{} }))
+}
 
 type quitMsg struct{}
 
@@ -103,8 +114,8 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, enqueueURLCmd(m.downloader, msg.url))
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
-	case waitingMsg:
-		m.footerMsg = "Waiting for downloads to finish..."
+	case footerMsg:
+		m.footerMsg = msg.msg
 	case errorMsg:
 		m.err = msg.err
 		cmds = append(cmds, resetErrorMsgCmd(m.err))
@@ -173,7 +184,10 @@ func (m appModel) footerView() string {
 	}
 
 	if m.footerMsg != "" {
-		footerItem = append(footerItem, m.errorStyle.Render(m.footerMsg))
+		footerItem = append(
+			footerItem,
+			m.errorStyle.Foreground(lipgloss.Color("7")).Render(m.footerMsg),
+		)
 	}
 
 	if helpView != "" {
