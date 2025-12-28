@@ -2,7 +2,7 @@
 run = """
 #!/usr/bin/env bash
 
-BUILDDATE=$(date +%Y-%m-%dT%H:%M:%SZ)
+BUILDDATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
 go generate
 go build -o ./tmp/ytqueue -trimpath -ldflags "-X main.buildDate=${BUILDDATE}"
@@ -22,6 +22,26 @@ while true; do
         break
     fi
 done
+"""
+
+[tasks.release]
+usage = """
+arg "<tag>" help="The version tag to release, e.g. v1.2.3"
+"""
+run = """
+#!/usr/bin/env bash
+
+mkdir -p ./release
+
+
+[[ {{usage.tag}} == v* ]] && echo "Release tag {{usage.tag}} is valid." || (echo "Error: Release tag must start with 'v'." && exit 1)
+
+git tag -a {{usage.tag}} -m "Release {{usage.tag}}"
+
+BUILDDATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+go generate
+go build -o ./release/ytqueue -trimpath -ldflags "-X main.buildDate=${BUILDDATE}"
 """
 
 [tasks.generate]
