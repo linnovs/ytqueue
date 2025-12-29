@@ -3,11 +3,11 @@ package main
 import "github.com/charmbracelet/bubbles/key"
 
 type baseKeymap struct {
-	help, quit, next, prev key.Binding
+	help, quit, next, prev, toggleLog key.Binding
 }
 
 func (b baseKeymap) Help() []key.Binding {
-	return []key.Binding{b.help, b.quit, b.next, b.prev}
+	return []key.Binding{b.help, b.quit, b.next, b.prev, b.toggleLog}
 }
 
 func newBaseKeymap() baseKeymap {
@@ -19,6 +19,7 @@ func newBaseKeymap() baseKeymap {
 			key.WithKeys("shift+tab"),
 			key.WithHelp("shift+tab", "previous section"),
 		),
+		toggleLog: key.NewBinding(key.WithKeys("@"), key.WithHelp("@", "toggle log")),
 	}
 }
 

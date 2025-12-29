@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"time"
 
 	"github.com/charmbracelet/bubbles/help"
@@ -40,6 +41,7 @@ type appModel struct {
 	downloader    *downloader
 	status        *status
 	datatable     *datatable
+	logging       *logging
 	errorStyle    lipgloss.Style
 	err           error
 	footerMsg     string
@@ -50,6 +52,7 @@ type contextFn func() context.Context
 func newModel(
 	downloader *downloader,
 	player *player,
+	logger io.Reader,
 	ctx context.Context,
 	cancelFn context.CancelFunc,
 	queries *database.Queries,
@@ -69,6 +72,7 @@ func newModel(
 		downloader: downloader,
 		status:     newStatus(cfg.DownloadPath),
 		datatable:  newDatatable(player, queries, getContext),
+		logging:    newLogging(logger),
 		errorStyle: newErrorStyle(),
 	}
 }
@@ -79,6 +83,7 @@ func (m appModel) Init() tea.Cmd {
 		m.topbar.Init(),
 		m.status.Init(),
 		m.datatable.Init(),
+		m.logging.Init(),
 	)
 }
 
@@ -109,6 +114,9 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, m.keymap.next):
 			m.section = m.section.next()
 			cmds = append(cmds, sectionChangedCmd(m.section))
+		case key.Matches(msg, m.keymap.toggleLog):
+			m.logging.visible = !m.logging.visible
+			return m, nil
 		}
 	case submitURLMsg:
 		cmds = append(cmds, enqueueURLCmd(m.downloader, msg.url))
@@ -131,6 +139,8 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.topbar, cmd = m.topbar.Update(msg)
 	cmds = append(cmds, cmd)
 	m.status, cmd = m.status.Update(msg)
+	cmds = append(cmds, cmd)
+	m.logging, cmd = m.logging.Update(msg)
 	cmds = append(cmds, cmd)
 	m.datatable, cmd = m.datatable.Update(msg)
 	cmds = append(cmds, cmd)
@@ -209,6 +219,7 @@ func (m appModel) View() string {
 	topbar := m.topbar.View()
 	urlPrompt := m.urlPrompt.View()
 	statusView := m.status.View()
+	loggingView := m.logging.View()
 	footerView := m.footerView()
 
 	h := lipgloss.Height
@@ -216,19 +227,28 @@ func (m appModel) View() string {
 	topbarHeight := h(topbar)
 	urlPromptHeight := h(urlPrompt)
 	statusViewHeight := h(statusView)
+	loggingViewHeight := h(loggingView)
 	footerHeight := h(footerView)
 
 	if footerView == "" {
 		footerHeight = 0
 	}
 
+	if loggingView == "" {
+		loggingViewHeight = 0
+	}
+
 	heightAdjusted := m.height - topbarHeight
-	heightAdjusted -= urlPromptHeight + statusViewHeight + footerHeight
+	heightAdjusted -= urlPromptHeight + statusViewHeight + loggingViewHeight + footerHeight
 
 	m.datatable.setHeight(heightAdjusted)
 	dataTable := m.datatable.View()
-
 	verticalItems := []string{topbar, urlPrompt, dataTable, statusView}
+
+	if loggingView != "" {
+		verticalItems = append(verticalItems, loggingView)
+	}
+
 	if footerView != "" {
 		verticalItems = append(verticalItems, footerView)
 	}

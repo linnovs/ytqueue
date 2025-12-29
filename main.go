@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -64,12 +65,20 @@ func runApp() int {
 		return 1
 	}
 
-	handler := slog.NewTextHandler(out, &slog.HandlerOptions{Level: slog.LevelDebug})
+	reader, writer := io.Pipe()
+
+	handler := slog.NewTextHandler(
+		io.MultiWriter(writer, out),
+		&slog.HandlerOptions{Level: slog.LevelDebug},
+	)
 	slog.SetDefault(slog.New(handler))
 
 	d := newDownloader(cfg)
 	player := newPlayer()
-	p := tea.NewProgram(newModel(d, player, ctx, cancel, queries, cfg), tea.WithAltScreen())
+	p := tea.NewProgram(
+		newModel(d, player, reader, ctx, cancel, queries, cfg),
+		tea.WithAltScreen(),
+	)
 	d.setProgram(p)
 	player.setProgram(p)
 
