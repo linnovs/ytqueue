@@ -120,9 +120,8 @@ func (d *datatable) updateRowOrderCmd(id string) tea.Cmd {
 
 func (d *datatable) moveUp() tea.Cmd {
 	d.rowMu.RLock()
-	defer d.rowMu.RUnlock()
-
 	upperIdx := clamp(d.cursor-1, 0, len(d.rows)-1)
+	d.rowMu.RUnlock()
 
 	d.rowMu.Lock()
 	d.rows[d.cursor], d.rows[upperIdx] = d.rows[upperIdx], d.rows[d.cursor]
