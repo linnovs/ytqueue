@@ -195,8 +195,8 @@ func (p *player) startPlayer() error {
 
 	cmd := exec.Command(
 		"mpv",
-		"--save-position-on-quit=yes",
-		"--keep-open=no",
+		"--save-position-on-quit",
+		"--keep-open=yes",
 		"--idle=yes",
 		"--input-ipc-server="+p.sockPath, // #nosec G204
 	)
