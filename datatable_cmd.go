@@ -117,7 +117,8 @@ func (d *datatable) playNextOrStopCmd() tea.Cmd {
 		d.rowMu.RLock()
 		defer d.rowMu.RUnlock()
 
-		for _, row := range d.rows[:idx] {
+		for i := idx - 1; i >= 0; i-- {
+			row := d.rows[i]
 			if row[colWatched] == isWatchedNo {
 				return d.playStopRowCmd(row[colID])()
 			}
