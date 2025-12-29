@@ -8,6 +8,7 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 )
 
 type logMsg string
@@ -81,7 +82,8 @@ func (l *logging) appendLog(msg string) {
 	}
 
 	l.result.WriteString("\n" + msg)
-	result := lipgloss.NewStyle().Width(l.viewport.Width).Render(l.result.String())
+	resultStr := ansi.Hardwrap(l.result.String(), l.viewport.Width, false)
+	result := lipgloss.NewStyle().Width(l.viewport.Width).Render(resultStr)
 
 	l.viewport.SetContent(result)
 	l.viewport.GotoBottom()
