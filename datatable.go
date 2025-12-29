@@ -45,7 +45,6 @@ type datatable struct {
 	rows             []row
 	cursor           int
 	isFocused        bool
-	playingId        string
 	player           *player
 	deleteConfirm    bool
 }
@@ -129,10 +128,8 @@ func (d *datatable) Update(msg tea.Msg) (*datatable, tea.Cmd) {
 		cmds = append(cmds, d.newVideoCmd(msg.filename, msg.url, msg.downloadPath))
 	case finishPlayingMsg:
 		cmds = append(cmds, d.playNextOrStopCmd())
-	case stoppedPlayingMsg:
-		if d.playingId == msg.id {
-			d.playingId = ""
-		}
+	case playbackChangedMsg:
+		d.updateViewport()
 	case sectionChangedMsg:
 		d.isFocused = msg.section == sectionDatatable
 		if msg.section == sectionDatatable {
@@ -188,7 +185,7 @@ func (d *datatable) renderRow(r int) string {
 		case colWatched:
 			style = style.Align(lipgloss.Center)
 
-			if d.playingId == d.rows[r][colID] {
+			if d.player.getCurrentlyPlayingId() == d.rows[r][colID] {
 				colValue = "Playing"
 				style = style.Foreground(lipgloss.Color("0")).
 					Background(lipgloss.Color("10")).

@@ -40,15 +40,9 @@ func (d *datatable) newVideoCmd(name, url, location string) tea.Cmd {
 
 func (d *datatable) playStopRowCmd(id string) tea.Cmd {
 	return func() tea.Msg {
-		slog.Debug(
-			"playStopRowCmd",
-			slog.String("currentPlayingId", d.playingId),
-			slog.String("requestedId", id),
-		)
+		slog.Debug("playStopRowCmd", slog.String("requestedId", id))
 
-		if d.playingId == id {
-			d.playingId = ""
-
+		if d.player.getCurrentlyPlayingId() == id {
 			if d.player.isPlaying() {
 				if err := d.player.stop(); err != nil {
 					return errorMsg{err: fmt.Errorf("failed to stop player: %w", err)}
@@ -57,8 +51,6 @@ func (d *datatable) playStopRowCmd(id string) tea.Cmd {
 
 			return nil
 		}
-
-		d.playingId = id
 
 		idx := slices.IndexFunc(d.rows, playingIDIndexFunc(id))
 		if idx == -1 {
@@ -110,14 +102,12 @@ func (d *datatable) setVideoWatched(id string) (int, error) {
 
 func (d *datatable) playNextOrStopCmd() tea.Cmd {
 	return func() tea.Msg {
-		idx, err := d.setVideoWatched(d.playingId)
+		idx, err := d.setVideoWatched(d.player.getCurrentlyPlayingId())
 		if err != nil {
 			return errorMsg{fmt.Errorf("failed to set video as watched: %w", err)}
 		}
 
 		if idx <= 0 {
-			d.playingId = ""
-
 			return nil
 		}
 

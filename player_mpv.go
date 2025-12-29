@@ -84,7 +84,7 @@ func (p *player) readMPVEvents(conn net.Conn) {
 			switch msg.Event {
 			case "file-loaded":
 				slog.Debug("mpv playback started", slog.String("id", p.getCurrentlyPlayingId()))
-				p.setPlaying(true, p.getCurrentlyPlayingId())
+				p.program.Send(playbackChangedMsg{})
 			case "end-file":
 				slog.Debug(
 					"mpv playback ended",
@@ -93,12 +93,10 @@ func (p *player) readMPVEvents(conn net.Conn) {
 				)
 
 				if msg.Reason != "eof" {
-					p.program.Send(stoppedPlayingMsg{p.getCurrentlyPlayingId()})
+					p.program.Send(playbackChangedMsg{})
 				} else {
 					p.program.Send(finishPlayingMsg{})
 				}
-
-				p.setPlaying(false)
 			}
 		}
 	}

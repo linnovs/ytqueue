@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -11,8 +12,8 @@ import (
 )
 
 type (
-	finishPlayingMsg  struct{}
-	stoppedPlayingMsg struct{ id string }
+	finishPlayingMsg   struct{}
+	playbackChangedMsg struct{}
 )
 
 type player struct {
