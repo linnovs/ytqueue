@@ -87,8 +87,10 @@ func (d *datatable) calculateColWidth() {
 	d.widths[colWatched] = isWatchedColWidth + colPadding
 }
 
-func (d *datatable) playingIDIndexFunc(r row) bool {
-	return r[colID] == d.playingId
+func playingIDIndexFunc(id string) func(r row) bool {
+	return func(r row) bool {
+		return r[colID] == id
+	}
 }
 
 func (d *datatable) updateViewport() {

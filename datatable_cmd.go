@@ -60,7 +60,7 @@ func (d *datatable) playStopRowCmd(id string) tea.Cmd {
 
 		d.playingId = id
 
-		idx := slices.IndexFunc(d.rows, d.playingIDIndexFunc)
+		idx := slices.IndexFunc(d.rows, playingIDIndexFunc(id))
 		if idx == -1 {
 			return errorMsg{errors.New("playing video not found in datatable")}
 		}
@@ -101,7 +101,7 @@ func (d *datatable) setVideoWatched(id string) (int, error) {
 	}
 
 	d.rowMu.Lock()
-	idx := slices.IndexFunc(d.rows, d.playingIDIndexFunc)
+	idx := slices.IndexFunc(d.rows, playingIDIndexFunc(id))
 	d.rows[idx] = videoToRow(*video)
 	d.rowMu.Unlock()
 
