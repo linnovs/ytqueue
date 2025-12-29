@@ -6,6 +6,9 @@ import (
 )
 
 func (d *datatable) keyMsgHandler(msg tea.KeyMsg) tea.Cmd {
+	d.cursorMu.Lock()
+	defer d.cursorMu.Unlock()
+
 	var cmd tea.Cmd
 
 	if !d.isFocused {

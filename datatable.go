@@ -43,6 +43,7 @@ type datatable struct {
 	columns          []column
 	rowMu            sync.RWMutex
 	rows             []row
+	cursorMu         sync.RWMutex
 	cursor           int
 	isFocused        bool
 	player           *player
@@ -184,6 +185,9 @@ func (d *datatable) renderHeader() string {
 
 // this function assumes the caller holds the rowMu Rlock.
 func (d *datatable) renderRow(r int) string {
+	d.cursorMu.RLock()
+	defer d.cursorMu.RUnlock()
+
 	var s strings.Builder
 
 	if d.deleteConfirm && r == d.cursor {
