@@ -42,7 +42,7 @@ func (d *datatable) keyMsgHandler(msg tea.KeyMsg) tea.Cmd {
 	case key.Matches(msg, d.keymap.moveDown):
 		cmd = d.moveDown()
 	case key.Matches(msg, d.keymap.playOrStop):
-		cmd = d.playStopRowCmd(d.rows[d.cursor][colID])
+		cmd = d.playStopRowCmd(d.getIDAtIndex(d.cursor))
 	case key.Matches(msg, d.keymap.toggleWatched):
 		cmd = d.toggleWatchedStatusCmd(d.cursor)
 	case key.Matches(msg, d.keymap.deleteRow):

@@ -22,6 +22,9 @@ func (d *datatable) scrollDown() {
 }
 
 func (d *datatable) lineUp(n int) {
+	d.rowMu.RLock()
+	defer d.rowMu.RUnlock()
+
 	d.deleteConfirm = false
 	d.cursor = clamp(d.cursor-n, 0, len(d.rows)-1)
 	d.nameTruncateLeft = 0
@@ -29,6 +32,9 @@ func (d *datatable) lineUp(n int) {
 }
 
 func (d *datatable) lineDown(n int) {
+	d.rowMu.RLock()
+	defer d.rowMu.RUnlock()
+
 	d.deleteConfirm = false
 	d.cursor = clamp(d.cursor+n, 0, len(d.rows)-1)
 	d.nameTruncateLeft = 0
@@ -67,6 +73,9 @@ func (d *datatable) gotoTop() {
 }
 
 func (d *datatable) gotoBottom() {
+	d.rowMu.RLock()
+	defer d.rowMu.RUnlock()
+
 	d.viewport.GotoBottom()
 	d.cursor = len(d.rows) - 1
 }
@@ -110,6 +119,9 @@ func (d *datatable) updateRowOrderCmd(id string) tea.Cmd {
 }
 
 func (d *datatable) moveUp() tea.Cmd {
+	d.rowMu.RLock()
+	defer d.rowMu.RUnlock()
+
 	upperIdx := clamp(d.cursor-1, 0, len(d.rows)-1)
 
 	d.rowMu.Lock()
@@ -120,11 +132,13 @@ func (d *datatable) moveUp() tea.Cmd {
 	d.scrollUp()
 	d.updateViewport()
 
-	return d.updateRowOrderCmd(d.rows[d.cursor][colID])
+	return d.updateRowOrderCmd(d.getIDAtIndex(d.cursor))
 }
 
 func (d *datatable) moveDown() tea.Cmd {
+	d.rowMu.RLock()
 	lowerIdx := clamp(d.cursor+1, 0, len(d.rows)-1)
+	d.rowMu.RUnlock()
 
 	d.rowMu.Lock()
 	d.rows[d.cursor], d.rows[lowerIdx] = d.rows[lowerIdx], d.rows[d.cursor]
@@ -134,5 +148,5 @@ func (d *datatable) moveDown() tea.Cmd {
 	d.scrollDown()
 	d.updateViewport()
 
-	return d.updateRowOrderCmd(d.rows[d.cursor][colID])
+	return d.updateRowOrderCmd(d.getIDAtIndex(d.cursor))
 }

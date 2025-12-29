@@ -31,7 +31,7 @@ func (d *datatable) newVideoCmd(name, url, location string) tea.Cmd {
 			return errorMsg{err}
 		}
 
-		rows := append([]row{videoToRow(*video)}, d.rows...)
+		rows := append([]row{videoToRow(*video)}, d.getCopyOfRows()...)
 		d.setRows(rows)
 
 		return nil
@@ -40,6 +40,9 @@ func (d *datatable) newVideoCmd(name, url, location string) tea.Cmd {
 
 func (d *datatable) playStopRowCmd(id string) tea.Cmd {
 	return func() tea.Msg {
+		d.rowMu.RLock()
+		defer d.rowMu.RUnlock()
+
 		slog.Debug("playStopRowCmd", slog.String("requestedId", id))
 
 		if d.player.getCurrentlyPlayingId() == id {
@@ -92,10 +95,10 @@ func (d *datatable) setVideoWatched(id string) (int, error) {
 		return 0, err
 	}
 
-	d.rowMu.Lock()
-	idx := slices.IndexFunc(d.rows, playingIDIndexFunc(id))
-	d.rows[idx] = videoToRow(*video)
-	d.rowMu.Unlock()
+	rows := d.getCopyOfRows()
+	idx := slices.IndexFunc(rows, playingIDIndexFunc(id))
+	rows[idx] = videoToRow(*video)
+	d.setRows(rows)
 
 	return idx, nil
 }
@@ -111,13 +114,22 @@ func (d *datatable) playNextOrStopCmd() tea.Cmd {
 			return nil
 		}
 
-		return d.playStopRowCmd(d.rows[idx-1][colID])()
+		d.rowMu.RLock()
+		defer d.rowMu.RUnlock()
+
+		for _, row := range d.rows[:idx] {
+			if row[colWatched] == isWatchedNo {
+				return d.playStopRowCmd(row[colID])()
+			}
+		}
+
+		return nil
 	}
 }
 
 func (d *datatable) toggleWatchedStatusCmd(cursor int) tea.Cmd {
 	return func() tea.Msg {
-		rows := append([]row{}, d.rows...)
+		rows := d.getCopyOfRows()
 
 		video, err := d.datastore.toggleWatched(d.getCtx(), rows[cursor][colID])
 		if err != nil {
@@ -133,8 +145,9 @@ func (d *datatable) toggleWatchedStatusCmd(cursor int) tea.Cmd {
 
 func (d *datatable) deleteRowCmd(cursor int) tea.Cmd {
 	return func() tea.Msg {
-		row := d.rows[cursor]
-		rows := append(d.rows[:cursor], d.rows[cursor+1:]...)
+		rows := d.getCopyOfRows()
+		row := rows[cursor]
+		rows = append(rows[:cursor], rows[cursor+1:]...)
 
 		if err := d.datastore.deleteVideo(d.getCtx(), row[colID]); err != nil {
 			return errorMsg{err}

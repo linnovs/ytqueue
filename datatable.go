@@ -92,6 +92,23 @@ func playingIDIndexFunc(id string) func(r row) bool {
 	}
 }
 
+func (d *datatable) getIDAtIndex(idx int) string {
+	d.rowMu.RLock()
+	defer d.rowMu.RUnlock()
+
+	return d.rows[idx][colID]
+}
+
+func (d *datatable) getCopyOfRows() []row {
+	d.rowMu.RLock()
+	defer d.rowMu.RUnlock()
+
+	rows := make([]row, len(d.rows))
+	copy(rows, d.rows)
+
+	return rows
+}
+
 func (d *datatable) updateViewport() {
 	d.rowMu.RLock()
 	defer d.rowMu.RUnlock()
@@ -165,6 +182,7 @@ func (d *datatable) renderHeader() string {
 		Render(s.String())
 }
 
+// this function assumes the caller holds the rowMu Rlock.
 func (d *datatable) renderRow(r int) string {
 	var s strings.Builder
 
