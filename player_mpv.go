@@ -75,7 +75,11 @@ func (p *player) readMPVEvents(conn net.Conn) {
 				slog.String("data", scanner.Text()),
 			)
 		case msg.Event != "":
-			slog.Debug("mpv event received", slog.String("event", msg.Event))
+			slog.Debug(
+				"mpv event received",
+				slog.String("event", msg.Event),
+				slog.String("data", scanner.Text()),
+			)
 
 			switch msg.Event {
 			case "file-loaded":
