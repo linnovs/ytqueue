@@ -80,8 +80,10 @@ func (l *logging) appendLog(msg string) {
 		l.result.Reset()
 	}
 
-	l.result.WriteString(msg + "\n")
-	l.viewport.SetContent(l.result.String())
+	l.result.WriteString("\n" + msg)
+	result := lipgloss.NewStyle().Width(l.viewport.Width).Render(l.result.String())
+
+	l.viewport.SetContent(result)
 	l.viewport.GotoBottom()
 }
 
@@ -90,7 +92,7 @@ func (l *logging) Update(msg tea.Msg) (*logging, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		l.viewport.Width = msg.Width
+		l.viewport.Width = msg.Width - l.style.GetHorizontalFrameSize()
 		l.style = l.style.Width(msg.Width - l.style.GetHorizontalFrameSize())
 
 		return l, nil
@@ -98,10 +100,6 @@ func (l *logging) Update(msg tea.Msg) (*logging, tea.Cmd) {
 		l.appendLog(string(msg))
 		cmds = append(cmds, l.waitForLogMsg())
 	}
-
-	var cmd tea.Cmd
-	l.viewport, cmd = l.viewport.Update(msg)
-	cmds = append(cmds, cmd)
 
 	return l, tea.Batch(cmds...)
 }
