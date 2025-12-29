@@ -27,7 +27,7 @@ func runApp() int {
 	logFile = filepath.Clean(logFile)
 	teaLogFile = filepath.Clean(teaLogFile)
 
-	teaLog, err := tea.LogToFile(teaLogFile, "")
+	teaLog, err := tea.LogToFile(teaLogFile, "debug")
 	if err != nil {
 		slog.Error("unable to open tea log file", slog.String("error", err.Error()))
 		return 1
