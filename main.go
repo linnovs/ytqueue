@@ -11,8 +11,6 @@ import (
 	"github.com/linnovs/ytqueue/database"
 )
 
-const fileperm = 0o600
-
 func runApp() int {
 	logFile, err := xdg.StateFile("ytqueue/ytqueue.log")
 	if err != nil {
@@ -37,7 +35,7 @@ func runApp() int {
 
 	defer teaLog.Close() // nolint:errcheck
 
-	out, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, fileperm)
+	out, err := os.Create(logFile)
 	if err != nil {
 		slog.Error("unable to open log file", slog.String("error", err.Error()))
 		return 1
