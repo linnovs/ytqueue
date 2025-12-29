@@ -129,7 +129,9 @@ func (d *datatable) moveUp() tea.Cmd {
 
 	d.cursor = upperIdx
 	d.scrollUp()
+	d.cursorMu.Unlock() // temporary unlock to avoid deadlock in updateViewport
 	d.updateViewport()
+	d.cursorMu.Lock()
 
 	return d.updateRowOrderCmd(d.getIDAtIndex(d.cursor))
 }
@@ -145,7 +147,9 @@ func (d *datatable) moveDown() tea.Cmd {
 
 	d.cursor = lowerIdx
 	d.scrollDown()
+	d.cursorMu.Unlock() // temporary unlock to avoid deadlock in updateViewport
 	d.updateViewport()
+	d.cursorMu.Lock()
 
 	return d.updateRowOrderCmd(d.getIDAtIndex(d.cursor))
 }
