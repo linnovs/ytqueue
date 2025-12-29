@@ -9,12 +9,17 @@ import (
 	"github.com/linnovs/ytqueue/database"
 )
 
+const (
+	isWatchedYes = "✅"
+	isWatchedNo  = "❌"
+)
+
 func boolToYesNo(b bool) string {
 	if b {
-		return "✅"
+		return isWatchedYes
 	}
 
-	return "❌"
+	return isWatchedNo
 }
 
 func videoToRow(v database.Video) row {
