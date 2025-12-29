@@ -92,10 +92,13 @@ func (p *player) readMPVEvents(conn net.Conn) {
 					slog.String("id", p.getCurrentlyPlayingId()),
 				)
 
-				if msg.Reason != "eof" {
-					p.program.Send(playbackChangedMsg{})
-				} else {
+				switch msg.Reason {
+				case "eof":
 					p.program.Send(finishPlayingMsg{})
+				case "quit":
+					p.setPlaying(false)
+				default:
+					p.program.Send(playbackChangedMsg{})
 				}
 			}
 		}
@@ -106,35 +109,40 @@ func (p *player) readMPVEvents(conn net.Conn) {
 	}
 }
 
-func (p *player) writeMPVCommands(conn net.Conn) {
-	for cmd := range p.commandCh {
-		msg := mpvCommand{Command: cmd}
+func (p *player) writeMPVCommands(ctx context.Context, conn net.Conn) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case cmd := <-p.commandCh:
+			msg := mpvCommand{Command: cmd}
 
-		data, err := json.Marshal(msg)
-		if err != nil {
-			slog.Error(
-				"failed to marshal mpv command",
-				slog.String("error", err.Error()),
-				slog.Any("command", msg),
-			)
+			data, err := json.Marshal(msg)
+			if err != nil {
+				slog.Error(
+					"failed to marshal mpv command",
+					slog.String("error", err.Error()),
+					slog.Any("command", msg),
+				)
 
-			continue
-		}
-
-		if _, err := conn.Write(append(data, '\n')); err != nil {
-			if errors.Is(err, net.ErrClosed) {
-				go func() {
-					p.commandCh <- cmd
-				}()
-
-				return
+				continue
 			}
 
-			slog.Error(
-				"failed to write mpv command to socket",
-				slog.String("error", err.Error()),
-				slog.Any("command", msg),
-			)
+			if _, err := conn.Write(append(data, '\n')); err != nil {
+				if errors.Is(err, net.ErrClosed) {
+					go func() {
+						p.commandCh <- cmd
+					}()
+
+					return
+				}
+
+				slog.Error(
+					"failed to write mpv command to socket",
+					slog.String("error", err.Error()),
+					slog.Any("command", msg),
+				)
+			}
 		}
 	}
 }
@@ -160,7 +168,7 @@ func (p *player) createMPVConn(ctx context.Context, wg *sync.WaitGroup) {
 	wg.Done()
 
 	go p.readMPVEvents(conn)
-	go p.writeMPVCommands(conn)
+	go p.writeMPVCommands(ctx, conn)
 
 	<-ctx.Done()
 }

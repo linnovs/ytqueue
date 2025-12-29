@@ -16,8 +16,6 @@ func (p *player) setPlaying(playing bool, id ...string) {
 
 	if len(id) > 0 {
 		p.currentlyPlayingId = id[0]
-	} else {
-		p.currentlyPlayingId = ""
 	}
 }
 
@@ -25,7 +23,11 @@ func (p *player) getCurrentlyPlayingId() string {
 	p.playingMu.Lock()
 	defer p.playingMu.Unlock()
 
-	return p.currentlyPlayingId
+	if p.playing {
+		return p.currentlyPlayingId
+	}
+
+	return ""
 }
 
 func (p *player) isRunning() bool {
