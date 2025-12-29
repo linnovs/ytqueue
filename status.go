@@ -94,7 +94,8 @@ func (d *status) getFreeSpaceCmd() tea.Cmd {
 			return errorMsg{fmt.Errorf("failed to get free space: %w", err)}
 		}
 
-		d.downloadPathFreeSpace = stat.Bavail * uint64(stat.Bsize)
+		// this conversion is safe as Bsize is always > 0
+		d.downloadPathFreeSpace = stat.Bavail * uint64(stat.Bsize) // #nosec G115
 
 		return nil
 	}
