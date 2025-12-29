@@ -182,7 +182,8 @@ func (d *datatable) renderRow(r int) string {
 		colValue := d.rows[r][colKey]
 		style := lipgloss.NewStyle().Width(d.widths[colKey]).Padding(0, dtCellPadding)
 
-		if colKey == colWatched {
+		switch colKey {
+		case colWatched:
 			style = style.Align(lipgloss.Center)
 
 			if d.playingId == d.rows[r][colID] {
@@ -191,6 +192,8 @@ func (d *datatable) renderRow(r int) string {
 					Background(lipgloss.Color("10")).
 					Bold(true)
 			}
+		case colLocation:
+			colValue = shortenPath(colValue)
 		}
 
 		cellWidth := d.widths[colKey] - style.GetHorizontalFrameSize()

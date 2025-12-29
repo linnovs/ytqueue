@@ -61,7 +61,7 @@ func newStatus(downloadDir string) *status {
 	downloadPath := lipgloss.JoinHorizontal(
 		lipgloss.Top,
 		componentStyle.Background(lipgloss.Color("27")).Render("PATH"),
-		componentStyle.Background(lipgloss.Color("39")).Render(downloadDir),
+		componentStyle.Background(lipgloss.Color("39")).Render(shortenPath(downloadDir)),
 	)
 
 	style := lipgloss.NewStyle().BorderStyle(lipgloss.RoundedBorder())
