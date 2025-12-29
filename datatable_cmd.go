@@ -149,16 +149,16 @@ func (d *datatable) deleteRowCmd(cursor int) tea.Cmd {
 		row := rows[cursor]
 		rows = append(rows[:cursor], rows[cursor+1:]...)
 
+		fname := filepath.Clean(filepath.Join(row[colLocation], row[colName]))
+		if err := os.Remove(fname); err != nil {
+			return errorMsg{fmt.Errorf("failed to delete video file: %w", err)}
+		}
+
 		if err := d.datastore.deleteVideo(d.getCtx(), row[colID]); err != nil {
 			return errorMsg{err}
 		}
 
 		d.setRows(rows)
-
-		fname := filepath.Clean(filepath.Join(row[colLocation], row[colName]))
-		if err := os.Remove(fname); err != nil {
-			return errorMsg{fmt.Errorf("failed to delete video file: %w", err)}
-		}
 
 		return nil
 	}
