@@ -196,7 +196,7 @@ func (m appModel) footerView() string {
 	if m.footerMsg != "" {
 		footerItem = append(
 			footerItem,
-			m.errorStyle.Foreground(lipgloss.Color("7")).Render(m.footerMsg),
+			m.errorStyle.UnsetForeground().Faint(true).Render(m.footerMsg),
 		)
 	}
 
