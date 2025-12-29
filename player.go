@@ -27,7 +27,7 @@ type player struct {
 }
 
 func newPlayer() *player {
-	sockPath, err := xdg.RuntimeFile("ytqueue/mpv.sock")
+	sockPath, err := xdg.RuntimeFile(fmt.Sprintf("ytqueue/mpv.%d.sock", os.Getpid()))
 	if err != nil {
 		slog.Error("unable to get mpv socket path", slog.String("error", err.Error()))
 		panic(err)
