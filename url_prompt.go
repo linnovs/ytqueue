@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/url"
 	"strings"
 
@@ -108,7 +107,7 @@ func (p *urlPrompt) queueSpinner(l list.Items, i int) string {
 		return p.spinner.View()
 	}
 
-	return ""
+	return "upcoming »"
 }
 
 func queueListItemStyle(_ list.Items, index int) lipgloss.Style {
@@ -131,11 +130,7 @@ func (p *urlPrompt) renderQueueList() string {
 		Item(p.queueList[0])
 
 	if len(p.queueList) > 1 {
-		const itemLimit = 2
-		itemLeft := clamp(len(p.queueList)-itemLimit, 0, len(p.queueList))
-
 		l.Item(p.queueList[1])
-		l.Item(fmt.Sprintf("and %d more...", itemLeft))
 	}
 
 	return l.String()
