@@ -107,7 +107,7 @@ func (p *urlPrompt) queueSpinner(l list.Items, i int) string {
 		return p.spinner.View()
 	}
 
-	return "upcoming »"
+	return ""
 }
 
 func queueListItemStyle(_ list.Items, index int) lipgloss.Style {
@@ -126,12 +126,13 @@ func (p *urlPrompt) renderQueueList() string {
 	l := list.New().
 		Enumerator(p.queueSpinner).
 		Hide(len(p.queueList) == 0).
-		ItemStyleFunc(queueListItemStyle).
-		Item(p.queueList[0])
+		ItemStyleFunc(queueListItemStyle)
 
-	if len(p.queueList) > 1 {
-		l.Item(p.queueList[1])
+	for i := range 5 {
+		l.Item(p.queueList[i])
 	}
+
+	l.Item("...")
 
 	return l.String()
 }
