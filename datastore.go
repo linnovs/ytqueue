@@ -2,11 +2,14 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
 
 	"github.com/linnovs/ytqueue/database"
+	"modernc.org/sqlite"
+	sqlite3 "modernc.org/sqlite/lib"
 )
 
 const (
@@ -72,6 +75,14 @@ func (s *datastore) addVideo(
 		Location: location,
 	})
 	if err != nil {
+		var sqliteErr *sqlite.Error
+
+		if ok := errors.As(err, &sqliteErr); ok {
+			if sqliteErr.Code() == sqlite3.SQLITE_CONSTRAINT_UNIQUE {
+				return nil, fmt.Errorf("video with URL %q already exists", url)
+			}
+		}
+
 		return nil, err
 	}
 
