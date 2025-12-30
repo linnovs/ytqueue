@@ -6,14 +6,18 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/adrg/xdg"
+	"github.com/charmbracelet/bubbles/progress"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 type (
 	finishPlayingMsg   struct{}
 	playbackChangedMsg struct{}
+	updateProgressMsg  struct{ percent float64 }
 )
 
 type player struct {
@@ -25,6 +29,9 @@ type player struct {
 	process            *os.Process
 	sockPath           string
 	commandCh          chan []any
+	playtime           time.Duration
+	playtimeRemaining  time.Duration
+	progress           progress.Model
 }
 
 func newPlayer() *player {
@@ -42,11 +49,27 @@ func newPlayer() *player {
 		processMu: new(sync.Mutex),
 		sockPath:  sockPath,
 		commandCh: commandCh,
+		progress:  progress.New(progress.WithDefaultGradient(), progress.WithoutPercentage()),
 	}
 }
 
 func (p *player) setProgram(program *tea.Program) {
 	p.program = program
+}
+
+func (p *player) renderPlayProgress(width int) string {
+	w := lipgloss.Width
+	playtime := renderPlaytime(p.playtime)
+	remaining := renderPlaytimeRemaining(p.playtimeRemaining)
+	p.progress.Width = width - w(playtime) - w(remaining)
+	playProgress := p.progress.View()
+
+	return lipgloss.JoinHorizontal(
+		lipgloss.Left,
+		playtime,
+		playProgress,
+		remaining,
+	)
 }
 
 func (p *player) play(filePath, id string) error {

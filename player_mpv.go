@@ -85,12 +85,6 @@ func (p *player) readMPVEvents(conn net.Conn) {
 				slog.String("data", scanner.Text()),
 			)
 		case msg.Event != "":
-			slog.Debug(
-				"mpv event received",
-				slog.String("event", msg.Event),
-				slog.String("data", scanner.Text()),
-			)
-
 			switch msg.Event {
 			case "file-loaded":
 				slog.Debug("mpv playback started", slog.String("id", p.getCurrentlyPlayingId()))
@@ -107,7 +101,25 @@ func (p *player) readMPVEvents(conn net.Conn) {
 					if reached, ok := msg.Data.(bool); ok && reached {
 						p.program.Send(finishPlayingMsg{})
 					}
+				case "time-pos":
+					if playtime, ok := msg.Data.(float64); ok {
+						p.playtime = time.Duration(playtime) * time.Second
+					}
+				case "time-remaining":
+					if remaining, ok := msg.Data.(float64); ok {
+						p.playtimeRemaining = time.Duration(remaining) * time.Second
+					}
+				case "percent-pos":
+					if percent, ok := msg.Data.(float64); ok {
+						const maxPercent = 100
+						p.program.Send(updateProgressMsg{percent / maxPercent})
+					}
 				default:
+					slog.Debug(
+						"mpv property change event received",
+						slog.String("name", msg.Name),
+						slog.Any("data", msg.Data),
+					)
 				}
 			case "end-file":
 				slog.Debug(
@@ -122,6 +134,12 @@ func (p *player) readMPVEvents(conn net.Conn) {
 				default:
 					p.program.Send(playbackChangedMsg{})
 				}
+			default:
+				slog.Debug(
+					"mpv unhandled event received",
+					slog.String("event", msg.Event),
+					slog.String("data", scanner.Text()),
+				)
 			}
 		}
 	}
@@ -203,6 +221,9 @@ func (p *player) createMPVConn(ctx context.Context, wg *sync.WaitGroup) {
 	defer closeMPVConn(conn)
 
 	p.writeMPVCommand(conn, "observe_property", p.nextPropertyID(), "eof-reached")
+	p.writeMPVCommand(conn, "observe_property", p.nextPropertyID(), "time-pos")
+	p.writeMPVCommand(conn, "observe_property", p.nextPropertyID(), "time-remaining")
+	p.writeMPVCommand(conn, "observe_property", p.nextPropertyID(), "percent-pos")
 
 	wg.Done()
 

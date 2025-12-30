@@ -4,6 +4,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/charmbracelet/bubbles/progress"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -155,6 +156,12 @@ func (d *datatable) Update(msg tea.Msg) (*datatable, tea.Cmd) {
 		} else {
 			d.styles = d.styles.UnsetBorderForeground()
 		}
+	case updateProgressMsg:
+		cmds = append(cmds, d.player.progress.SetPercent(msg.percent))
+	case progress.FrameMsg:
+		model, cmd := d.player.progress.Update(msg)
+		cmds = append(cmds, cmd)
+		d.player.progress = model.(progress.Model)
 	case quitMsg:
 		cmds = append(cmds, d.player.quit())
 	case tea.KeyMsg:
@@ -199,6 +206,7 @@ func (d *datatable) renderRow(r int) string {
 			Render("Delete this row? (press 'x' again to confirm, 'esc' to cancel)")
 	}
 
+	isPlaying := d.player.getCurrentlyPlayingId() == d.rows[r][colID]
 	rowStyle := lipgloss.NewStyle()
 
 	if r == d.cursor {
@@ -210,31 +218,43 @@ func (d *datatable) renderRow(r int) string {
 	}
 
 	for _, colKey := range d.columns {
-		colValue := d.rows[r][colKey]
 		style := lipgloss.NewStyle().Width(d.widths[colKey]).Padding(0, dtCellPadding)
+		cellWidth := d.widths[colKey] - style.GetHorizontalFrameSize()
+		colValue := d.rows[r][colKey]
 
 		switch colKey {
+		case colName:
+			if d.nameTruncateLeft > 0 && r == d.cursor {
+				colValue = runewidth.TruncateLeft(colValue, d.nameTruncateLeft, "…")
+			}
 		case colWatched:
 			style = style.Align(lipgloss.Center)
 
-			if d.player.getCurrentlyPlayingId() == d.rows[r][colID] {
+			if isPlaying {
 				colValue = "PLAYING"
 				rowStyle = rowStyle.Bold(true).Background(lipgloss.Color("34"))
 			}
+		case colURL:
+			if isPlaying {
+				fullWidth := d.widths[colURL] + d.widths[colLocation]
+				p := d.player.renderPlayProgress(cellWidth + d.widths[colLocation])
+				s.WriteString(style.Width(fullWidth).Render(p))
+
+				continue
+			}
 		case colLocation:
+			if isPlaying {
+				continue
+			}
+
 			colValue = shortenPath(colValue)
 		}
 
-		cellWidth := d.widths[colKey] - style.GetHorizontalFrameSize()
-
-		if colKey == colName && d.nameTruncateLeft > 0 && r == d.cursor {
-			colValue = runewidth.TruncateLeft(colValue, d.nameTruncateLeft, "…")
-		}
-
-		s.WriteString(style.Render(runewidth.Truncate(colValue, cellWidth, "…")))
+		colValue = runewidth.Truncate(colValue, cellWidth, "…")
+		s.WriteString(rowStyle.Render(style.Render(colValue)))
 	}
 
-	return rowStyle.Render(s.String())
+	return s.String()
 }
 
 func (d *datatable) View() string {
