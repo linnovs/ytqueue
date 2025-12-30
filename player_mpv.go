@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net"
 	"os"
@@ -24,22 +25,31 @@ func closeMPVConn(conn net.Conn) {
 }
 
 type mpvCommand struct {
-	Command []string `json:"command"`
+	Command []any `json:"command"`
 }
 
 type mpvEvent struct {
 	Event     string `json:"event"`
 	Error     string `json:"error,omitempty"`
 	RequestID *int   `json:"request_id,omitempty"`
+	Name      string `json:"name,omitempty"`
+	Data      any    `json:"data,omitempty"`
 	Reason    string `json:"reason,omitempty"`
 }
 
-func (p *player) sendMPVCommand(command ...string) error {
-	commandStr := strings.Join(command, " ")
+func commandToString(command ...any) string {
+	placeholders := make([]string, len(command))
+	for i := range command {
+		placeholders[i] = "%v"
+	}
 
+	return fmt.Sprintf(strings.Join(placeholders, " "), command...)
+}
+
+func (p *player) sendMPVCommand(command ...any) error {
 	p.commandCh <- command
 
-	slog.Debug("mpv command sent", slog.String("command", commandStr))
+	slog.Debug("mpv command sent", slog.String("command", commandToString(command...)))
 
 	return nil
 }
@@ -85,6 +95,20 @@ func (p *player) readMPVEvents(conn net.Conn) {
 			case "file-loaded":
 				slog.Debug("mpv playback started", slog.String("id", p.getCurrentlyPlayingId()))
 				p.program.Send(playbackChangedMsg{})
+			case "property-change":
+				switch msg.Name {
+				case "eof-reached":
+					slog.Debug(
+						"mpv playback stopped",
+						slog.String("id", p.getCurrentlyPlayingId()),
+						slog.Any("data", msg.Data),
+					)
+
+					if reached, ok := msg.Data.(bool); ok && reached {
+						p.program.Send(finishPlayingMsg{})
+					}
+				default:
+				}
 			case "end-file":
 				slog.Debug(
 					"mpv playback ended",
@@ -93,8 +117,6 @@ func (p *player) readMPVEvents(conn net.Conn) {
 				)
 
 				switch msg.Reason {
-				case "eof":
-					p.program.Send(finishPlayingMsg{})
 				case "quit":
 					p.setPlaying(false)
 				default:
@@ -109,42 +131,57 @@ func (p *player) readMPVEvents(conn net.Conn) {
 	}
 }
 
+// this return true if the connection is closed.
+func (p *player) writeMPVCommand(conn net.Conn, cmd ...any) bool {
+	msg := mpvCommand{Command: cmd}
+
+	data, err := json.Marshal(msg)
+	if err != nil {
+		slog.Error(
+			"failed to marshal mpv command",
+			slog.String("error", err.Error()),
+			slog.Any("command", msg),
+		)
+
+		return false
+	}
+
+	if _, err := conn.Write(append(data, '\n')); err != nil {
+		if errors.Is(err, net.ErrClosed) {
+			go func() {
+				p.commandCh <- cmd
+			}()
+
+			return true
+		}
+
+		slog.Error(
+			"failed to write mpv command to socket",
+			slog.String("error", err.Error()),
+			slog.Any("command", msg),
+		)
+	}
+
+	return false
+}
+
 func (p *player) writeMPVCommands(ctx context.Context, conn net.Conn) {
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case cmd := <-p.commandCh:
-			msg := mpvCommand{Command: cmd}
-
-			data, err := json.Marshal(msg)
-			if err != nil {
-				slog.Error(
-					"failed to marshal mpv command",
-					slog.String("error", err.Error()),
-					slog.Any("command", msg),
-				)
-
-				continue
-			}
-
-			if _, err := conn.Write(append(data, '\n')); err != nil {
-				if errors.Is(err, net.ErrClosed) {
-					go func() {
-						p.commandCh <- cmd
-					}()
-
-					return
-				}
-
-				slog.Error(
-					"failed to write mpv command to socket",
-					slog.String("error", err.Error()),
-					slog.Any("command", msg),
-				)
+			if closed := p.writeMPVCommand(conn, cmd...); closed {
+				return
 			}
 		}
 	}
+}
+
+func (p *player) nextPropertyID() int {
+	const idRange = 1_000_000
+
+	return int(time.Now().UnixNano() % idRange)
 }
 
 func (p *player) createMPVConn(ctx context.Context, wg *sync.WaitGroup) {
@@ -164,6 +201,8 @@ func (p *player) createMPVConn(ctx context.Context, wg *sync.WaitGroup) {
 	}
 
 	defer closeMPVConn(conn)
+
+	p.writeMPVCommand(conn, "observe_property", p.nextPropertyID(), "eof-reached")
 
 	wg.Done()
 
@@ -206,7 +245,7 @@ func (p *player) startPlayer() error {
 	cmd := exec.Command(
 		"mpv",
 		"--save-position-on-quit",
-		"--keep-open=no",
+		"--keep-open=yes",
 		"--idle=yes",
 		"--input-ipc-server="+p.sockPath, // #nosec G204
 	)

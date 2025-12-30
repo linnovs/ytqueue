@@ -24,7 +24,7 @@ type player struct {
 	processMu          *sync.Mutex
 	process            *os.Process
 	sockPath           string
-	commandCh          chan []string
+	commandCh          chan []any
 }
 
 func newPlayer() *player {
@@ -35,7 +35,7 @@ func newPlayer() *player {
 	}
 
 	sockPath = filepath.Clean(sockPath)
-	commandCh := make(chan []string)
+	commandCh := make(chan []any)
 
 	return &player{
 		playingMu: new(sync.Mutex),
