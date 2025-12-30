@@ -193,14 +193,20 @@ func (m appModel) footerView() string {
 	if m.err != nil {
 		footerItem = append(
 			footerItem,
-			m.errorStyle.Width(m.width).Render(fmt.Sprintf("Error: %s", m.err)),
+			m.errorStyle.Width(m.width).
+				AlignHorizontal(lipgloss.Center).
+				Render(fmt.Sprintf("Error: %s", m.err)),
 		)
 	}
 
 	if m.footerMsg != "" {
 		footerItem = append(
 			footerItem,
-			m.errorStyle.Width(m.width).UnsetForeground().Faint(true).Render(m.footerMsg),
+			m.errorStyle.Width(m.width).
+				AlignHorizontal(lipgloss.Center).
+				UnsetForeground().
+				Faint(true).
+				Render(m.footerMsg),
 		)
 	}
 
