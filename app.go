@@ -185,18 +185,22 @@ func (m appModel) footerView() string {
 		keymap = m.keymap.datatable
 	}
 
+	m.help.Width = m.width
 	helpView := m.help.View(keymap)
 
 	var footerItem []string
 
 	if m.err != nil {
-		footerItem = append(footerItem, m.errorStyle.Render(fmt.Sprintf("Error: %s", m.err)))
+		footerItem = append(
+			footerItem,
+			m.errorStyle.Width(m.width).Render(fmt.Sprintf("Error: %s", m.err)),
+		)
 	}
 
 	if m.footerMsg != "" {
 		footerItem = append(
 			footerItem,
-			m.errorStyle.UnsetForeground().Faint(true).Render(m.footerMsg),
+			m.errorStyle.Width(m.width).UnsetForeground().Faint(true).Render(m.footerMsg),
 		)
 	}
 
