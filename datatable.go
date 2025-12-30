@@ -199,6 +199,16 @@ func (d *datatable) renderRow(r int) string {
 			Render("Delete this row? (press 'x' again to confirm, 'esc' to cancel)")
 	}
 
+	rowStyle := lipgloss.NewStyle()
+
+	if r == d.cursor {
+		rowStyle = d.selectedRowStyle
+
+		if d.isFocused {
+			rowStyle = rowStyle.Background(d.focusedBGColor)
+		}
+	}
+
 	for _, colKey := range d.columns {
 		colValue := d.rows[r][colKey]
 		style := lipgloss.NewStyle().Width(d.widths[colKey]).Padding(0, dtCellPadding)
@@ -208,10 +218,8 @@ func (d *datatable) renderRow(r int) string {
 			style = style.Align(lipgloss.Center)
 
 			if d.player.getCurrentlyPlayingId() == d.rows[r][colID] {
-				colValue = "Playing"
-				style = style.Foreground(lipgloss.Color("0")).
-					Background(lipgloss.Color("10")).
-					Bold(true)
+				colValue = "PLAYING"
+				rowStyle = rowStyle.Bold(true).Background(lipgloss.Color("34"))
 			}
 		case colLocation:
 			colValue = shortenPath(colValue)
@@ -226,15 +234,7 @@ func (d *datatable) renderRow(r int) string {
 		s.WriteString(style.Render(runewidth.Truncate(colValue, cellWidth, "…")))
 	}
 
-	if r == d.cursor {
-		if d.isFocused {
-			return d.selectedRowStyle.Background(d.focusedBGColor).Render(s.String())
-		}
-
-		return d.selectedRowStyle.Render(s.String())
-	}
-
-	return s.String()
+	return rowStyle.Render(s.String())
 }
 
 func (d *datatable) View() string {
