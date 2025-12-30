@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/url"
 	"strings"
 
@@ -126,10 +127,15 @@ func (p *urlPrompt) renderQueueList() string {
 	l := list.New().
 		Enumerator(p.queueSpinner).
 		Hide(len(p.queueList) == 0).
-		ItemStyleFunc(queueListItemStyle)
+		ItemStyleFunc(queueListItemStyle).
+		Item(p.queueList[0])
 
-	for _, url := range p.queueList {
-		l.Item(url)
+	if len(p.queueList) > 1 {
+		const itemLimit = 2
+		itemLeft := clamp(len(p.queueList)-itemLimit, 0, len(p.queueList))
+
+		l.Item(p.queueList[1])
+		l.Item(fmt.Sprintf("and %d more...", itemLeft))
 	}
 
 	return l.String()
