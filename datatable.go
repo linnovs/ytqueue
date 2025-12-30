@@ -1,6 +1,7 @@
 package main
 
 import (
+	"slices"
 	"strings"
 	"sync"
 
@@ -258,9 +259,26 @@ func (d *datatable) renderRow(r int) string {
 }
 
 func (d *datatable) View() string {
+	playingRow := ""
 	header := d.renderHeader()
 	d.viewport.Height = d.styles.GetHeight() - lipgloss.Height(header)
+
+	if d.player.isPlaying() {
+		d.rowMu.RLock()
+		idx := slices.IndexFunc(d.rows, playingIDIndexFunc(d.player.getCurrentlyPlayingId()))
+
+		if idx >= d.viewport.YOffset+d.viewport.Height {
+			d.viewport.Height--
+			playingRow = d.renderRow(idx)
+		}
+		d.rowMu.RUnlock()
+	}
+
 	content := lipgloss.JoinVertical(lipgloss.Top, header, d.viewport.View())
+
+	if playingRow != "" {
+		content = lipgloss.JoinVertical(lipgloss.Top, content, playingRow)
+	}
 
 	return d.styles.Width(d.width).Render(content)
 }
