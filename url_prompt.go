@@ -39,7 +39,7 @@ func newURLPrompt() *urlPrompt {
 }
 
 func (p *urlPrompt) Init() tea.Cmd {
-	return tea.Batch(textinput.Blink, p.prompt.Focus(), p.spinner.Tick)
+	return tea.Batch(textinput.Blink, p.spinner.Tick)
 }
 
 func submitURLCmd(url string) tea.Cmd {

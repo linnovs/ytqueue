@@ -66,7 +66,6 @@ func newModel(
 	}
 
 	return appModel{
-		section:    sectionURLPrompt,
 		cancelFn:   cancelFn,
 		keymap:     newKeymap(),
 		help:       help.New(),
@@ -87,6 +86,7 @@ func (m appModel) Init() tea.Cmd {
 		m.status.Init(),
 		m.datatable.Init(),
 		m.logging.Init(),
+		sectionChangedCmd(sectionDatatable),
 	)
 }
 
@@ -112,15 +112,15 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, m.keymap.quit):
 			return m, m.exitCmd()
 		case key.Matches(msg, m.keymap.prev):
-			m.section = m.section.prev()
-			cmds = append(cmds, sectionChangedCmd(m.section))
+			cmds = append(cmds, sectionChangedCmd(m.section.prev()))
 		case key.Matches(msg, m.keymap.next):
-			m.section = m.section.next()
-			cmds = append(cmds, sectionChangedCmd(m.section))
+			cmds = append(cmds, sectionChangedCmd(m.section.next()))
 		case key.Matches(msg, m.keymap.toggleLog):
 			m.logging.visible = !m.logging.visible
 			return m, nil
 		}
+	case sectionChangedMsg:
+		m.section = msg.section
 	case submitURLMsg:
 		cmds = append(cmds, enqueueURLCmd(m.downloader, msg.url))
 	case tea.WindowSizeMsg:
