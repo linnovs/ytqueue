@@ -8,12 +8,16 @@ import (
 	"os/exec"
 	"path/filepath"
 	"slices"
+	"strings"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-const wlCopyCmd = "wl-copy"
+const (
+	wlCopyCmd  = "wl-copy"
+	wlPasteCmd = "wl-paste"
+)
 
 func (d *datatable) copyURLCmd(cursor int) tea.Cmd {
 	return func() tea.Msg {
@@ -30,6 +34,24 @@ func (d *datatable) copyURLCmd(cursor int) tea.Cmd {
 		const msgDelay = 2 * time.Second
 
 		return footerMsgCmd(fmt.Sprintf("Copied URL (%s) to clipboard", url), msgDelay)()
+	}
+}
+
+func (d *datatable) pasteURLCmd() tea.Cmd {
+	return func() tea.Msg {
+		d.rowMu.RLock()
+		defer d.rowMu.RUnlock()
+
+		data, err := exec.Command(wlPasteCmd).CombinedOutput()
+		if err != nil {
+			return errorMsg{fmt.Errorf("failed to paste URL from clipboard: %w", err)}
+		}
+
+		url := strings.TrimSpace(string(data))
+
+		slog.Debug("pasted URL from clipboard", slog.String("url", url))
+
+		return submitURLMsg{url}
 	}
 }
 

@@ -60,6 +60,8 @@ func (d *datatable) keyMsgHandler(msg tea.KeyMsg) tea.Cmd {
 		cmd = d.refreshRowsCmd()
 	case key.Matches(msg, d.keymap.copyURL):
 		cmd = d.copyURLCmd(d.cursor)
+	case key.Matches(msg, d.keymap.pasteURL):
+		cmd = d.pasteURLCmd()
 	}
 
 	return cmd

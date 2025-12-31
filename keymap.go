@@ -46,7 +46,7 @@ type datatableKeymap struct {
 	gotoTop, gotoBottom, cursor2middle            key.Binding
 	playOrStop, toggleWatched, deleteRow, refresh key.Binding
 	nameScrollLeft, nameScrollRight               key.Binding
-	copyURL                                       key.Binding
+	copyURL, pasteURL                             key.Binding
 }
 
 func (d datatableKeymap) ShortHelp() []key.Binding {
@@ -127,6 +127,7 @@ func newDatatableKeymap() datatableKeymap {
 		nameScrollRight: key.NewBinding(
 			key.WithKeys("l", "right"),
 			key.WithHelp("→/l", "scroll name right")),
-		copyURL: key.NewBinding(key.WithKeys("y"), key.WithHelp("y", "copy URL to clipboard")),
+		copyURL:  key.NewBinding(key.WithKeys("y"), key.WithHelp("y", "copy URL to clipboard")),
+		pasteURL: key.NewBinding(key.WithKeys("p"), key.WithHelp("p", "paste URL from clipboard")),
 	}
 }
