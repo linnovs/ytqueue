@@ -40,6 +40,8 @@ func (d *datatable) keyMsgHandler(msg tea.KeyMsg) tea.Cmd {
 		d.gotoTop()
 	case key.Matches(msg, d.keymap.gotoBottom):
 		d.gotoBottom()
+	case key.Matches(msg, d.keymap.cursor2middle):
+		d.cursor2middle()
 	case key.Matches(msg, d.keymap.moveUp):
 		cmd = d.moveUp()
 	case key.Matches(msg, d.keymap.moveDown):

@@ -80,6 +80,10 @@ func (d *datatable) gotoBottom() {
 	d.cursor = len(d.rows) - 1
 }
 
+func (d *datatable) cursor2middle() {
+	d.viewport.SetYOffset(clamp(d.cursor-(d.viewport.Height/2), 0, len(d.rows)-d.viewport.Height))
+}
+
 func (d *datatable) updateRowOrderCmd(id string) tea.Cmd {
 	return func() tea.Msg {
 		d.rowMu.Lock()
