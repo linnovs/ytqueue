@@ -128,11 +128,14 @@ func (p *urlPrompt) renderQueueList() string {
 		Hide(len(p.queueList) == 0).
 		ItemStyleFunc(queueListItemStyle)
 
-	for i := range 5 {
+	const maxItems = 5
+	for i := range clamp(len(p.queueList), 0, maxItems) {
 		l.Item(p.queueList[i])
 	}
 
-	l.Item("...")
+	if len(p.queueList) > maxItems {
+		l.Item("⋮")
+	}
 
 	return l.String()
 }
