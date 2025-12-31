@@ -5,11 +5,33 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
+
+const wlCopyCmd = "wl-copy"
+
+func (d *datatable) copyURLCmd(cursor int) tea.Cmd {
+	return func() tea.Msg {
+		d.rowMu.RLock()
+		defer d.rowMu.RUnlock()
+
+		url := d.rows[cursor][colURL]
+
+		// #nosec G204
+		if err := exec.Command(wlCopyCmd, d.rows[cursor][colURL]).Run(); err != nil {
+			return errorMsg{fmt.Errorf("failed to copy URL to clipboard: %w", err)}
+		}
+
+		const msgDelay = 2 * time.Second
+
+		return footerMsgCmd(fmt.Sprintf("Copied URL (%s) to clipboard", url), msgDelay)()
+	}
+}
 
 func (d *datatable) refreshRowsCmd() tea.Cmd {
 	return tea.Sequence(func() tea.Msg {

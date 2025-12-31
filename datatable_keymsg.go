@@ -56,6 +56,8 @@ func (d *datatable) keyMsgHandler(msg tea.KeyMsg) tea.Cmd {
 		d.deleteConfirm = !d.deleteConfirm
 	case key.Matches(msg, d.keymap.refresh):
 		cmd = d.refreshRowsCmd()
+	case key.Matches(msg, d.keymap.copyURL):
+		cmd = d.copyURLCmd(d.cursor)
 	}
 
 	return cmd
