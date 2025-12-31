@@ -16,7 +16,10 @@ import (
 
 var activeBorderColor = lipgloss.Color("99") // nolint: gochecknoglobals
 
-type footerMsg struct{ msg string }
+type (
+	footerMsg      struct{ msg string }
+	clearFooterMsg struct{ msg string }
+)
 
 func footerMsgCmd(msg string, clearAfter time.Duration) tea.Cmd {
 	if clearAfter == 0 {
@@ -25,7 +28,7 @@ func footerMsgCmd(msg string, clearAfter time.Duration) tea.Cmd {
 
 	return tea.Sequence(func() tea.Msg {
 		return footerMsg{msg: msg}
-	}, tea.Tick(clearAfter, func(t time.Time) tea.Msg { return footerMsg{} }))
+	}, tea.Tick(clearAfter, func(t time.Time) tea.Msg { return clearFooterMsg{msg} }))
 }
 
 type quitMsg struct{}
@@ -124,6 +127,10 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width, m.height = msg.Width, msg.Height
 	case footerMsg:
 		m.footerMsg = msg.msg
+	case clearFooterMsg:
+		if msg.msg == m.footerMsg {
+			m.footerMsg = ""
+		}
 	case errorMsg:
 		m.err = msg.err
 		cmds = append(cmds, resetErrorMsgCmd(m.err))
