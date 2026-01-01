@@ -154,6 +154,13 @@ func (d *datatable) Update(msg tea.Msg) (*datatable, tea.Cmd) {
 		} else {
 			d.styles = d.styles.UnsetBorderForeground()
 		}
+	case deletedRowMsg:
+		footerMsg := "Deleted video: " + msg.filename
+		if msg.notFound {
+			footerMsg = "Video not found, removed entry from database: " + msg.filename
+		}
+
+		cmds = append(cmds, footerMsgCmd(footerMsg, 0))
 	case updateProgressMsg:
 		cmds = append(cmds, d.player.progress.SetPercent(msg.percent))
 	case progress.FrameMsg:

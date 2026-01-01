@@ -134,6 +134,8 @@ func (d *status) Update(msg tea.Msg) (*status, tea.Cmd) {
 		filename := filepath.Base(msg.Filename)
 		percent := downloaded / total
 		cmds = append(cmds, d.progress.SetPercent(percent), d.filename.updateText(filename))
+	case deletedRowMsg:
+		cmds = append(cmds, d.getFreeSpaceCmd())
 	case finishDownloadMsg:
 		d.status = downloadStatusFinished
 	case quitMsg:

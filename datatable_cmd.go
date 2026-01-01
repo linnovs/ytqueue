@@ -14,6 +14,11 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+type deletedRowMsg struct {
+	filename string
+	notFound bool
+}
+
 const (
 	wlCopyCmd  = "wl-copy"
 	wlPasteCmd = "wl-paste"
@@ -193,12 +198,12 @@ func (d *datatable) deleteRowCmd(cursor int) tea.Cmd {
 		rows := d.getCopyOfRows()
 		row := rows[cursor]
 		rows = append(rows[:cursor], rows[cursor+1:]...)
-		footerMsg := fmt.Sprintf("Deleted video: %s", row[colName])
+		msg := deletedRowMsg{filename: row[colName]}
 
 		fname := filepath.Clean(filepath.Join(row[colLocation], row[colName]))
 		if err := os.Remove(fname); err != nil {
 			if errors.Is(err, os.ErrNotExist) {
-				footerMsg = fmt.Sprintf("Video file not found, but entry deleted: %s", row[colName])
+				msg.notFound = true
 			} else {
 				return errorMsg{fmt.Errorf("failed to delete video file: %w", err)}
 			}
@@ -217,6 +222,6 @@ func (d *datatable) deleteRowCmd(cursor int) tea.Cmd {
 			d.cursor = len(rows) - 1
 		}
 
-		return footerMsgCmd(footerMsg, 0)()
+		return msg
 	}
 }
