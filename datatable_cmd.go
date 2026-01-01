@@ -195,7 +195,7 @@ func (d *datatable) deleteRowCmd(cursor int) tea.Cmd {
 		rows = append(rows[:cursor], rows[cursor+1:]...)
 
 		fname := filepath.Clean(filepath.Join(row[colLocation], row[colName]))
-		if err := os.Remove(fname); err != nil {
+		if err := os.Remove(fname); err != nil && !errors.Is(err, os.ErrNotExist) {
 			return errorMsg{fmt.Errorf("failed to delete video file: %w", err)}
 		}
 
