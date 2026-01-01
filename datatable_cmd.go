@@ -193,10 +193,15 @@ func (d *datatable) deleteRowCmd(cursor int) tea.Cmd {
 		rows := d.getCopyOfRows()
 		row := rows[cursor]
 		rows = append(rows[:cursor], rows[cursor+1:]...)
+		footerMsg := fmt.Sprintf("Deleted video: %s", row[colName])
 
 		fname := filepath.Clean(filepath.Join(row[colLocation], row[colName]))
-		if err := os.Remove(fname); err != nil && !errors.Is(err, os.ErrNotExist) {
-			return errorMsg{fmt.Errorf("failed to delete video file: %w", err)}
+		if err := os.Remove(fname); err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				footerMsg = fmt.Sprintf("Video file not found, but entry deleted: %s", row[colName])
+			} else {
+				return errorMsg{fmt.Errorf("failed to delete video file: %w", err)}
+			}
 		}
 
 		if err := d.datastore.deleteVideo(d.getCtx(), row[colID]); err != nil {
@@ -212,6 +217,6 @@ func (d *datatable) deleteRowCmd(cursor int) tea.Cmd {
 			d.cursor = len(rows) - 1
 		}
 
-		return nil
+		return footerMsgCmd(footerMsg, 0)()
 	}
 }
