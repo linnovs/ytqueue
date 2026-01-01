@@ -205,6 +205,13 @@ func (d *datatable) deleteRowCmd(cursor int) tea.Cmd {
 
 		d.setRows(rows)
 
+		d.cursorMu.Lock()
+		defer d.cursorMu.Unlock()
+
+		if d.cursor >= len(rows)-1 && d.cursor > 0 {
+			d.cursor = len(rows) - 1
+		}
+
 		return nil
 	}
 }
