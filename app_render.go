@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/lipgloss"
@@ -80,47 +81,42 @@ func (m appModel) footerView() string {
 	return ""
 }
 
+func (m appModel) calculateHeights(components []string) int {
+	var totalHeight int
+
+	h := lipgloss.Height
+
+	for _, component := range components {
+		if component == "" {
+			continue
+		}
+
+		totalHeight += h(component)
+	}
+
+	return totalHeight
+}
+
 func (m appModel) View() string {
 	if m.width < minWidth || m.height < minHeight {
 		return m.terminalTooSmall()
 	}
 
-	topbar := m.topbar.View()
-	urlPrompt := m.urlPrompt.View()
-	statusView := m.status.View()
-	loggingView := m.logging.View()
-	footerView := m.footerView()
+	const datatableIdx = 2
+	const totalSections = 6
 
-	h := lipgloss.Height
+	sections := make([]string, 0, totalSections)
+	sections = append(sections, m.topbar.View())
+	sections = append(sections, m.urlPrompt.View())
+	sections = append(sections, m.status.View())
+	sections = append(sections, m.logging.View())
+	sections = append(sections, m.footerView())
 
-	topbarHeight := h(topbar)
-	urlPromptHeight := h(urlPrompt)
-	statusViewHeight := h(statusView)
-	loggingViewHeight := h(loggingView)
-	footerHeight := h(footerView)
-
-	if footerView == "" {
-		footerHeight = 0
-	}
-
-	if loggingView == "" {
-		loggingViewHeight = 0
-	}
-
-	heightAdjusted := m.height - topbarHeight
-	heightAdjusted -= urlPromptHeight + statusViewHeight + loggingViewHeight + footerHeight
-
+	heightAdjusted := m.height - m.calculateHeights(sections)
 	m.datatable.setHeight(heightAdjusted)
-	dataTable := m.datatable.View()
-	verticalItems := []string{topbar, urlPrompt, dataTable, statusView}
+	sections = slices.Insert(sections, datatableIdx, m.datatable.View())
 
-	if loggingView != "" {
-		verticalItems = append(verticalItems, loggingView)
-	}
-
-	if footerView != "" {
-		verticalItems = append(verticalItems, footerView)
-	}
-
-	return lipgloss.JoinVertical(lipgloss.Center, verticalItems...)
+	return lipgloss.JoinVertical(lipgloss.Center, slices.DeleteFunc(sections, func(c string) bool {
+		return c == ""
+	})...)
 }
