@@ -13,6 +13,7 @@ func formatPlaytime(d time.Duration) string {
 }
 
 func renderPlayingStatus(status playingStatus) string {
+	const padding = 2
 	var color string
 
 	switch status {
@@ -25,7 +26,7 @@ func renderPlayingStatus(status playingStatus) string {
 	}
 
 	return lipgloss.NewStyle().
-		Width(playingStatusLength).
+		Width(playingStatusLength+padding).
 		Padding(0, 1).
 		AlignHorizontal(lipgloss.Center).
 		Bold(true).
