@@ -28,6 +28,7 @@ const (
 type row map[column]string
 
 type datatable struct {
+	isInitialRefresh bool
 	width            int
 	nameTruncateLeft int
 	widths           map[column]int
@@ -55,11 +56,12 @@ func newDatatable(player *player, queries *database.Queries, getCtx contextFn) *
 
 	styles := lipgloss.NewStyle().Border(lipgloss.RoundedBorder())
 	d := &datatable{
-		widths:      make(map[column]int),
-		getCtx:      getCtx,
-		datastore:   newDatastore(queries),
-		viewport:    viewport.New(0, defaultViewportHeight),
-		headerStyle: lipgloss.NewStyle().Bold(true),
+		isInitialRefresh: true,
+		widths:           make(map[column]int),
+		getCtx:           getCtx,
+		datastore:        newDatastore(queries),
+		viewport:         viewport.New(0, defaultViewportHeight),
+		headerStyle:      lipgloss.NewStyle().Bold(true),
 		selectedRowStyle: lipgloss.NewStyle().
 			Background(lipgloss.Color("244")).
 			Foreground(lipgloss.Color("229")),

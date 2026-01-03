@@ -70,7 +70,15 @@ func (d *datatable) refreshRowsCmd() tea.Cmd {
 		d.setRows(videosToRows(videos))
 
 		return nil
-	}, footerMsgCmd("Refreshed video list", 0))
+	}, func() tea.Msg {
+		if d.isInitialRefresh {
+			d.isInitialRefresh = false
+
+			return nil
+		}
+
+		return footerMsgCmd("Refreshed video list", 0)()
+	})
 }
 
 func (d *datatable) newVideoCmd(name, url, location string) tea.Cmd {
