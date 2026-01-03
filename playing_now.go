@@ -10,7 +10,7 @@ type playingNow struct {
 	width         int
 	player        *player
 	style         lipgloss.Style
-	headerStyle   lipgloss.Style
+	header        string
 	filenameStyle lipgloss.Style
 	progress      progress.Model
 	getCtx        contextFn
@@ -23,14 +23,14 @@ func newPlayingNow(player *player, getCtx contextFn) *playingNow {
 	headerStyle := lipgloss.NewStyle().
 		Bold(true).Padding(0, 1).
 		Background(lipgloss.Color("48")).
-		Foreground(lipgloss.Color("231"))
-	filenameStyle := headerStyle.Background(lipgloss.Color("99"))
+		Foreground(lipgloss.Color("231")).SetString("Playing Now")
+	filenameStyle := headerStyle.UnsetString().Background(lipgloss.Color("99"))
 	pp := progress.New(progress.WithDefaultGradient(), progress.WithoutPercentage())
 
 	return &playingNow{
 		player:        player,
 		style:         style,
-		headerStyle:   headerStyle,
+		header:        headerStyle.Render(),
 		filenameStyle: filenameStyle,
 		progress:      pp,
 		getCtx:        getCtx,
@@ -57,12 +57,12 @@ func (p *playingNow) Update(msg tea.Msg) (*playingNow, tea.Cmd) {
 }
 
 func (p *playingNow) renderHeader() string {
-	const header = "Playing Now"
+	filenameStyle := p.filenameStyle.Width(p.width - lipgloss.Width(p.header))
 
 	bar := lipgloss.JoinHorizontal(
 		lipgloss.Top,
-		p.headerStyle.Render(header),
-		p.filenameStyle.Render(p.player.getPlayingFilename()),
+		p.header,
+		filenameStyle.Render(p.player.getPlayingFilename()),
 	)
 
 	return lipgloss.NewStyle().
