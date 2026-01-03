@@ -80,6 +80,19 @@ func (d *datatable) gotoBottom() {
 	d.cursor = len(d.rows) - 1
 }
 
+func (d *datatable) gotoPlaying() {
+	d.rowMu.RLock()
+	defer d.rowMu.RUnlock()
+
+	if !d.player.isPlaying() {
+		return
+	}
+
+	idx := slices.IndexFunc(d.rows, playingIDIndexFunc(d.player.getCurrentlyPlayingId()))
+	d.cursor = clamp(idx, 0, len(d.rows)-1)
+	d.cursor2middle()
+}
+
 func (d *datatable) cursor2middle() {
 	d.viewport.SetYOffset(clamp(d.cursor-(d.viewport.Height/2), 0, len(d.rows)-d.viewport.Height))
 }

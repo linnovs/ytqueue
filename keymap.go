@@ -41,12 +41,12 @@ func (p promptKeymap) FullHelp() [][]key.Binding {
 
 type datatableKeymap struct {
 	baseKeymap
-	lineUp, lineDown, moveUp, moveDown            key.Binding
-	pageUp, pageDown, halfPageUp, halfPageDown    key.Binding
-	gotoTop, gotoBottom, cursor2middle            key.Binding
-	playOrStop, toggleWatched, deleteRow, refresh key.Binding
-	nameScrollLeft, nameScrollRight               key.Binding
-	copyURL, pasteURL                             key.Binding
+	lineUp, lineDown, moveUp, moveDown              key.Binding
+	pageUp, pageDown, halfPageUp, halfPageDown      key.Binding
+	gotoTop, gotoBottom, gotoPlaying, cursor2middle key.Binding
+	playOrStop, toggleWatched, deleteRow, refresh   key.Binding
+	nameScrollLeft, nameScrollRight                 key.Binding
+	copyURL, pasteURL                               key.Binding
 }
 
 func (d datatableKeymap) ShortHelp() []key.Binding {
@@ -58,7 +58,7 @@ func (d datatableKeymap) FullHelp() [][]key.Binding {
 		d.Help(),
 		{d.lineUp, d.lineDown, d.moveUp, d.moveDown, d.nameScrollLeft, d.nameScrollRight},
 		{d.pageUp, d.pageDown, d.halfPageUp, d.halfPageDown},
-		{d.gotoTop, d.gotoBottom, d.cursor2middle},
+		{d.gotoTop, d.gotoBottom, d.gotoPlaying, d.cursor2middle},
 		{d.playOrStop, d.toggleWatched, d.deleteRow, d.refresh},
 	}
 }
@@ -111,8 +111,12 @@ func newDatatableKeymap() datatableKeymap {
 			key.WithKeys("ctrl+d"),
 			key.WithHelp("ctrl+d", "half page down"),
 		),
-		gotoTop:       key.NewBinding(key.WithKeys("g"), key.WithHelp("g", "go to top")),
-		gotoBottom:    key.NewBinding(key.WithKeys("G"), key.WithHelp("G", "go to bottom")),
+		gotoTop:    key.NewBinding(key.WithKeys("g"), key.WithHelp("g", "go to top")),
+		gotoBottom: key.NewBinding(key.WithKeys("G"), key.WithHelp("G", "go to bottom")),
+		gotoPlaying: key.NewBinding(
+			key.WithKeys("c"),
+			key.WithHelp("c", "go to currently playing"),
+		),
 		cursor2middle: key.NewBinding(key.WithKeys("z"), key.WithHelp("z", "cursor to middle")),
 		playOrStop:    key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "play/stop")),
 		toggleWatched: key.NewBinding(
