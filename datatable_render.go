@@ -1,7 +1,6 @@
 package main
 
 import (
-	"slices"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
@@ -59,25 +58,12 @@ func (d *datatable) renderRow(r int) string {
 				colValue = runewidth.TruncateLeft(colValue, d.nameTruncateLeft, "…")
 			}
 		case colWatched:
-			style = style.Align(lipgloss.Center)
+			style = style.AlignHorizontal(lipgloss.Center)
 
 			if isPlaying {
-				colValue = "PLAYING"
 				rowStyle = rowStyle.Bold(true).Background(lipgloss.Color("34"))
 			}
-		case colURL:
-			if isPlaying {
-				fullWidth := d.widths[colURL] + d.widths[colLocation]
-				p := d.player.renderPlayProgress(cellWidth + d.widths[colLocation])
-				s.WriteString(style.Width(fullWidth).Render(p))
-
-				continue
-			}
 		case colLocation:
-			if isPlaying {
-				continue
-			}
-
 			colValue = shortenPath(colValue)
 		}
 
@@ -92,18 +78,6 @@ func (d *datatable) View() string {
 	playingRow := ""
 	header := d.renderHeader()
 	d.viewport.Height = d.styles.GetHeight() - lipgloss.Height(header)
-
-	if d.player.isPlaying() {
-		d.rowMu.RLock()
-		idx := slices.IndexFunc(d.rows, playingIDIndexFunc(d.player.getCurrentlyPlayingId()))
-
-		if idx >= d.viewport.YOffset+d.viewport.Height {
-			d.viewport.Height--
-			playingRow = d.renderRow(idx)
-		}
-		d.rowMu.RUnlock()
-	}
-
 	content := lipgloss.JoinVertical(lipgloss.Top, header, d.viewport.View())
 
 	if playingRow != "" {

@@ -54,6 +54,93 @@ func (p *player) sendMPVCommand(command ...any) error {
 	return nil
 }
 
+func (p *player) observePropertyChange(msg mpvEvent) {
+	switch msg.Name {
+	case "filename/no-ext":
+		slog.Debug(
+			"mpv changed filename",
+			slog.String("id", p.getCurrentlyPlayingId()),
+			slog.Any("data", msg.Data),
+		)
+
+		if filename, ok := msg.Data.(string); ok {
+			p.setPlayingFilename(filename)
+		}
+	case "pause":
+		slog.Debug(
+			"mpv playback paused/unpaused",
+			slog.String("id", p.getCurrentlyPlayingId()),
+			slog.Any("data", msg.Data),
+		)
+
+		if paused, ok := msg.Data.(bool); ok {
+			if paused {
+				p.setPlaying(playingStatusPaused)
+			} else {
+				p.setPlaying(playingStatusPlaying)
+			}
+		}
+	case "eof-reached":
+		slog.Debug(
+			"mpv playback stopped",
+			slog.String("id", p.getCurrentlyPlayingId()),
+			slog.Any("data", msg.Data),
+		)
+
+		if reached, ok := msg.Data.(bool); ok && reached {
+			p.program.Send(finishPlayingMsg{})
+		}
+	case "time-pos":
+		if playtime, ok := msg.Data.(float64); ok {
+			p.setPlaytime(time.Duration(playtime) * time.Second)
+		}
+	case "time-remaining":
+		if remaining, ok := msg.Data.(float64); ok {
+			p.setRemainingTime(time.Duration(remaining) * time.Second)
+		}
+	case "percent-pos":
+		if percent, ok := msg.Data.(float64); ok {
+			const maxPercent = 100
+			p.program.Send(updateProgressMsg{percent / maxPercent})
+		}
+	default:
+		slog.Debug(
+			"mpv property change event received",
+			slog.String("name", msg.Name),
+			slog.Any("data", msg.Data),
+		)
+	}
+}
+
+func (p *player) handleEvent(msg mpvEvent, raw string) {
+	switch msg.Event {
+	case "file-loaded":
+		slog.Debug("mpv playback started", slog.String("id", p.getCurrentlyPlayingId()))
+		p.program.Send(playbackChangedMsg{})
+	case "property-change":
+		p.observePropertyChange(msg)
+	case "end-file":
+		slog.Debug(
+			"mpv playback ended",
+			slog.String("reason", msg.Reason),
+			slog.String("id", p.getCurrentlyPlayingId()),
+		)
+
+		switch msg.Reason {
+		case "quit":
+			p.setPlaying(playingStatusStopped)
+		default:
+			p.program.Send(playbackChangedMsg{})
+		}
+	default:
+		slog.Debug(
+			"mpv unhandled event received",
+			slog.String("event", msg.Event),
+			slog.String("data", raw),
+		)
+	}
+}
+
 func (p *player) readMPVEvents(conn net.Conn) {
 	scanner := bufio.NewScanner(conn)
 
@@ -85,62 +172,7 @@ func (p *player) readMPVEvents(conn net.Conn) {
 				slog.String("data", scanner.Text()),
 			)
 		case msg.Event != "":
-			switch msg.Event {
-			case "file-loaded":
-				slog.Debug("mpv playback started", slog.String("id", p.getCurrentlyPlayingId()))
-				p.program.Send(playbackChangedMsg{})
-			case "property-change":
-				switch msg.Name {
-				case "eof-reached":
-					slog.Debug(
-						"mpv playback stopped",
-						slog.String("id", p.getCurrentlyPlayingId()),
-						slog.Any("data", msg.Data),
-					)
-
-					if reached, ok := msg.Data.(bool); ok && reached {
-						p.program.Send(finishPlayingMsg{})
-					}
-				case "time-pos":
-					if playtime, ok := msg.Data.(float64); ok {
-						p.playtime = time.Duration(playtime) * time.Second
-					}
-				case "time-remaining":
-					if remaining, ok := msg.Data.(float64); ok {
-						p.playtimeRemaining = time.Duration(remaining) * time.Second
-					}
-				case "percent-pos":
-					if percent, ok := msg.Data.(float64); ok {
-						const maxPercent = 100
-						p.program.Send(updateProgressMsg{percent / maxPercent})
-					}
-				default:
-					slog.Debug(
-						"mpv property change event received",
-						slog.String("name", msg.Name),
-						slog.Any("data", msg.Data),
-					)
-				}
-			case "end-file":
-				slog.Debug(
-					"mpv playback ended",
-					slog.String("reason", msg.Reason),
-					slog.String("id", p.getCurrentlyPlayingId()),
-				)
-
-				switch msg.Reason {
-				case "quit":
-					p.setPlaying(false)
-				default:
-					p.program.Send(playbackChangedMsg{})
-				}
-			default:
-				slog.Debug(
-					"mpv unhandled event received",
-					slog.String("event", msg.Event),
-					slog.String("data", scanner.Text()),
-				)
-			}
+			p.handleEvent(msg, scanner.Text())
 		}
 	}
 
@@ -224,6 +256,8 @@ func (p *player) createMPVConn(ctx context.Context, wg *sync.WaitGroup) {
 	p.writeMPVCommand(conn, "observe_property", p.nextPropertyID(), "time-pos")
 	p.writeMPVCommand(conn, "observe_property", p.nextPropertyID(), "time-remaining")
 	p.writeMPVCommand(conn, "observe_property", p.nextPropertyID(), "percent-pos")
+	p.writeMPVCommand(conn, "observe_property", p.nextPropertyID(), "pause")
+	p.writeMPVCommand(conn, "observe_property", p.nextPropertyID(), "filename/no-ext")
 
 	wg.Done()
 

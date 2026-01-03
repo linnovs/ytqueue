@@ -40,6 +40,7 @@ type appModel struct {
 	help          help.Model
 	urlPrompt     *urlPrompt
 	topbar        topbar
+	playingNow    *playingNow
 	downloader    *downloader
 	status        *status
 	datatable     *datatable
@@ -70,6 +71,7 @@ func newModel(
 		help:       help.New(),
 		urlPrompt:  newURLPrompt(),
 		topbar:     newTopbar(),
+		playingNow: newPlayingNow(player, getContext),
 		downloader: downloader,
 		status:     newStatus(cfg.DownloadPath),
 		datatable:  newDatatable(player, queries, getContext),
@@ -84,6 +86,7 @@ func (m appModel) Init() tea.Cmd {
 		m.topbar.Init(),
 		m.status.Init(),
 		m.datatable.Init(),
+		m.playingNow.Init(),
 		m.logging.Init(),
 		sectionChangedCmd(sectionDatatable),
 	)
@@ -143,6 +146,8 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.urlPrompt, cmd = m.urlPrompt.Update(msg)
 	cmds = append(cmds, cmd)
 	m.topbar, cmd = m.topbar.Update(msg)
+	cmds = append(cmds, cmd)
+	m.playingNow, cmd = m.playingNow.Update(msg)
 	cmds = append(cmds, cmd)
 	m.status, cmd = m.status.Update(msg)
 	cmds = append(cmds, cmd)

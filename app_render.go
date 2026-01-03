@@ -108,6 +108,7 @@ func (m appModel) View() string {
 	sections := make([]string, 0, totalSections)
 	sections = append(sections, m.topbar.View())
 	sections = append(sections, m.urlPrompt.View())
+	sections = append(sections, m.playingNow.View())
 	sections = append(sections, m.status.View())
 	sections = append(sections, m.logging.View())
 	sections = append(sections, m.footerView())

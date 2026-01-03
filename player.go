@@ -20,18 +20,34 @@ type (
 	updateProgressMsg  struct{ percent float64 }
 )
 
+type playingStatus int
+
+const (
+	playingStatusStopped playingStatus = iota
+	playingStatusPlaying
+	playingStatusPaused
+)
+
+const playingStatusLength = 9
+
+func (s playingStatus) String() string {
+	return [...]string{"STOPPED", "PLAYING", "PAUSED"}[s]
+}
+
 type player struct {
-	program            *tea.Program
-	playingMu          *sync.Mutex
-	playing            bool
-	currentlyPlayingId string
-	processMu          *sync.Mutex
-	process            *os.Process
-	sockPath           string
-	commandCh          chan []any
-	playtime           time.Duration
-	playtimeRemaining  time.Duration
-	progress           progress.Model
+	program                  *tea.Program
+	playingMu                *sync.RWMutex
+	playing                  playingStatus
+	currentlyPlayingId       string
+	currentlyPlayingFilename string
+	processMu                *sync.RWMutex
+	process                  *os.Process
+	sockPath                 string
+	commandCh                chan []any
+	playtimeMu               *sync.RWMutex
+	playtime                 time.Duration
+	playtimeRemaining        time.Duration
+	progress                 progress.Model
 }
 
 func newPlayer() *player {
@@ -45,11 +61,12 @@ func newPlayer() *player {
 	commandCh := make(chan []any)
 
 	return &player{
-		playingMu: new(sync.Mutex),
-		processMu: new(sync.Mutex),
-		sockPath:  sockPath,
-		commandCh: commandCh,
-		progress:  progress.New(progress.WithDefaultGradient(), progress.WithoutPercentage()),
+		playingMu:  new(sync.RWMutex),
+		playtimeMu: new(sync.RWMutex),
+		processMu:  new(sync.RWMutex),
+		sockPath:   sockPath,
+		commandCh:  commandCh,
+		progress:   progress.New(progress.WithDefaultGradient(), progress.WithoutPercentage()),
 	}
 }
 
@@ -59,13 +76,15 @@ func (p *player) setProgram(program *tea.Program) {
 
 func (p *player) renderPlayProgress(width int) string {
 	w := lipgloss.Width
-	playtime := renderPlaytime(p.playtime)
-	remaining := renderPlaytimeRemaining(p.playtimeRemaining)
-	p.progress.Width = width - w(playtime) - w(remaining)
+	playtime := renderPlaytime(p.getPlaytime())
+	playStatus := renderPlayingStatus(p.getPlaying())
+	remaining := renderPlaytimeRemaining(p.getRemainingTime())
+	p.progress.Width = width - w(playStatus) - w(playtime) - w(remaining)
 	playProgress := p.progress.View()
 
 	return lipgloss.JoinHorizontal(
 		lipgloss.Left,
+		playStatus,
 		playtime,
 		playProgress,
 		remaining,
@@ -79,7 +98,7 @@ func (p *player) play(filePath, id string) error {
 		}
 	}
 
-	defer p.setPlaying(true, id)
+	defer p.setPlaying(playingStatusPlaying, id)
 
 	slog.Debug("sending loadfile command to mpv", slog.String("file", filePath))
 
@@ -91,7 +110,7 @@ func (p *player) stop() error {
 		return nil
 	}
 
-	defer p.setPlaying(false)
+	defer p.setPlaying(playingStatusStopped)
 
 	return p.sendMPVCommand("quit")
 }
