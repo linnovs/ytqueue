@@ -30,8 +30,7 @@ func renderPlayingStatus(status playingStatus) string {
 		Padding(0, 1).
 		AlignHorizontal(lipgloss.Center).
 		Bold(true).
-		Foreground(lipgloss.Color("231")).
-		Background(lipgloss.Color(color)).
+		Foreground(lipgloss.Color(color)).
 		Render(status.String())
 }
 
