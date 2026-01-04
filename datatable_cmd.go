@@ -19,6 +19,8 @@ type deletedRowMsg struct {
 	notFound bool
 }
 
+type updateRowOrderMsg struct{}
+
 const (
 	wlCopyCmd  = "wl-copy"
 	wlPasteCmd = "wl-paste"

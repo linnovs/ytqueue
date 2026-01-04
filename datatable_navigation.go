@@ -131,42 +131,32 @@ func (d *datatable) updateRowOrderCmd(id string) tea.Cmd {
 			slog.Int64("new_order_unix", newOrderUnix),
 		)
 
-		return nil
+		return updateRowOrderMsg{}
 	}
 }
 
-func (d *datatable) moveUp() tea.Cmd {
-	d.rowMu.RLock()
-	upperIdx := clamp(d.cursor-1, 0, len(d.rows)-1)
-	d.rowMu.RUnlock()
-
+func (d *datatable) moveRow(n int) tea.Cmd {
 	d.rowMu.Lock()
-	d.rows[d.cursor], d.rows[upperIdx] = d.rows[upperIdx], d.rows[d.cursor]
-	d.rowMu.Unlock()
+	defer d.rowMu.Unlock()
 
-	d.cursor = upperIdx
-	d.scrollUp()
-	d.cursorMu.Unlock() // temporary unlock to avoid deadlock in updateViewport
-	d.updateViewport()
-	d.cursorMu.Lock()
+	nextIdx := clamp(d.cursor+n, 0, len(d.rows)-1)
+	d.rows[d.cursor], d.rows[nextIdx] = d.rows[nextIdx], d.rows[d.cursor]
+	id := d.rows[nextIdx][colID]
+	d.cursor = nextIdx
 
-	return d.updateRowOrderCmd(d.getIDAtIndex(d.cursor))
+	if n > 0 {
+		d.scrollDown()
+	} else {
+		d.scrollUp()
+	}
+
+	return d.updateRowOrderCmd(id)
+}
+
+func (d *datatable) moveUp() tea.Cmd {
+	return d.moveRow(-1)
 }
 
 func (d *datatable) moveDown() tea.Cmd {
-	d.rowMu.RLock()
-	lowerIdx := clamp(d.cursor+1, 0, len(d.rows)-1)
-	d.rowMu.RUnlock()
-
-	d.rowMu.Lock()
-	d.rows[d.cursor], d.rows[lowerIdx] = d.rows[lowerIdx], d.rows[d.cursor]
-	d.rowMu.Unlock()
-
-	d.cursor = lowerIdx
-	d.scrollDown()
-	d.cursorMu.Unlock() // temporary unlock to avoid deadlock in updateViewport
-	d.updateViewport()
-	d.cursorMu.Lock()
-
-	return d.updateRowOrderCmd(d.getIDAtIndex(d.cursor))
+	return d.moveRow(1)
 }
