@@ -58,8 +58,7 @@ func (d datatableKeymap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		d.Help(),
 		{d.lineUp, d.lineDown, d.moveUp, d.moveDown, d.nameScrollLeft, d.nameScrollRight},
-		{d.pageUp, d.pageDown, d.halfPageUp, d.halfPageDown},
-		{d.scrollToTop, d.scrollToBottom},
+		{d.pageUp, d.pageDown, d.halfPageUp, d.halfPageDown, d.scrollToTop, d.scrollToBottom},
 		{d.gotoTop, d.gotoBottom, d.gotoPlaying, d.cursor2middle},
 		{d.playOrStop, d.toggleWatched, d.deleteRow, d.refresh},
 	}
