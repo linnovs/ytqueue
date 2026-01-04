@@ -75,7 +75,7 @@ func (p *player) getCurrentlyPlayingId() string {
 	p.playingMu.RLock()
 	defer p.playingMu.RUnlock()
 
-	if p.playing == playingStatusPlaying {
+	if p.isRunning() {
 		return p.currentlyPlayingId
 	}
 
