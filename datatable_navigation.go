@@ -79,16 +79,16 @@ func (d *datatable) halfPageDown() {
 }
 
 func (d *datatable) gotoTop() {
-	d.viewport.GotoTop()
 	d.cursor = 0
+	d.viewport.GotoTop()
 }
 
 func (d *datatable) gotoBottom() {
 	d.rowMu.RLock()
 	defer d.rowMu.RUnlock()
 
-	d.viewport.GotoBottom()
 	d.cursor = len(d.rows) - 1
+	d.viewport.GotoBottom()
 }
 
 func (d *datatable) gotoPlaying() {
