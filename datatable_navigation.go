@@ -9,6 +9,14 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+func (d *datatable) clampCursor(cursor int) int {
+	return clamp(cursor, 0, len(d.rows)-1)
+}
+
+func (d *datatable) clampCursorInViewport(cursor int) int {
+	return clamp(cursor, 0, len(d.rows)-d.viewport.Height)
+}
+
 func (d *datatable) scrollUp() {
 	if d.cursor < d.viewport.YOffset {
 		d.viewport.SetYOffset(d.cursor)
@@ -17,7 +25,7 @@ func (d *datatable) scrollUp() {
 
 func (d *datatable) scrollDown() {
 	if d.cursor >= d.viewport.YOffset+d.viewport.Height {
-		d.viewport.SetYOffset(d.cursor - d.viewport.Height + 1)
+		d.viewport.SetYOffset(d.clampCursor(d.cursor - d.viewport.Height + 1))
 	}
 }
 
@@ -26,7 +34,7 @@ func (d *datatable) moveCursor(n int) {
 	defer d.rowMu.RUnlock()
 
 	d.deleteConfirm = false
-	d.cursor = clamp(d.cursor+n, 0, len(d.rows)-1)
+	d.cursor = d.clampCursor(d.cursor + n)
 	d.nameTruncateLeft = 0
 
 	if n < 0 {
@@ -92,12 +100,12 @@ func (d *datatable) gotoPlaying() {
 	}
 
 	idx := slices.IndexFunc(d.rows, playingIDIndexFunc(d.player.getCurrentlyPlayingId()))
-	d.cursor = clamp(idx, 0, len(d.rows)-1)
+	d.cursor = d.clampCursor(idx)
 	d.cursor2middle()
 }
 
 func (d *datatable) cursor2middle() {
-	d.viewport.SetYOffset(clamp(d.cursor-(d.viewport.Height/2), 0, len(d.rows)-d.viewport.Height))
+	d.viewport.SetYOffset(d.clampCursorInViewport(d.cursor - (d.viewport.Height / 2)))
 }
 
 func (d *datatable) updateRowOrderCmd(id string) tea.Cmd {
@@ -142,7 +150,7 @@ func (d *datatable) moveRow(n int) tea.Cmd {
 	d.rowMu.Lock()
 	defer d.rowMu.Unlock()
 
-	nextIdx := clamp(d.cursor+n, 0, len(d.rows)-1)
+	nextIdx := d.clampCursor(d.cursor + n)
 	d.rows[d.cursor], d.rows[nextIdx] = d.rows[nextIdx], d.rows[d.cursor]
 	id := d.rows[nextIdx][colID]
 	d.cursor = nextIdx
