@@ -21,24 +21,27 @@ func (d *datatable) scrollDown() {
 	}
 }
 
-func (d *datatable) lineUp(n int) {
-	d.rowMu.RLock()
-	defer d.rowMu.RUnlock()
-
-	d.deleteConfirm = false
-	d.cursor = clamp(d.cursor-n, 0, len(d.rows)-1)
-	d.nameTruncateLeft = 0
-	d.scrollUp()
-}
-
-func (d *datatable) lineDown(n int) {
+func (d *datatable) moveCursor(n int) {
 	d.rowMu.RLock()
 	defer d.rowMu.RUnlock()
 
 	d.deleteConfirm = false
 	d.cursor = clamp(d.cursor+n, 0, len(d.rows)-1)
 	d.nameTruncateLeft = 0
-	d.scrollDown()
+
+	if n < 0 {
+		d.scrollUp()
+	} else {
+		d.scrollDown()
+	}
+}
+
+func (d *datatable) lineUp(n int) {
+	d.moveCursor(-n)
+}
+
+func (d *datatable) lineDown(n int) {
+	d.moveCursor(n)
 }
 
 func (d *datatable) nameScrollLeft(n int) {
