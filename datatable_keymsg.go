@@ -21,6 +21,10 @@ func (d *datatable) keyMsgHandleMovement(msg tea.KeyMsg) tea.Cmd {
 		d.halfPageUp()
 	case key.Matches(msg, d.keymap.halfPageDown):
 		d.halfPageDown()
+	case key.Matches(msg, d.keymap.scrollToTop):
+		d.scrollToTop()
+	case key.Matches(msg, d.keymap.scrollToBottom):
+		d.scrollToBottom()
 	case key.Matches(msg, d.keymap.gotoTop):
 		d.gotoTop()
 	case key.Matches(msg, d.keymap.gotoBottom):

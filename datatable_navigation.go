@@ -25,7 +25,19 @@ func (d *datatable) scrollUp() {
 
 func (d *datatable) scrollDown() {
 	if d.cursor >= d.viewport.YOffset+d.viewport.Height {
-		d.viewport.SetYOffset(d.clampCursor(d.cursor - d.viewport.Height + 1))
+		d.viewport.SetYOffset(d.clampCursorInViewport(d.cursor - d.viewport.Height + 1))
+	}
+}
+
+func (d *datatable) scrollToTop() {
+	if d.viewport.YOffset-d.viewport.Height != d.cursor {
+		d.viewport.SetYOffset(d.cursor)
+	}
+}
+
+func (d *datatable) scrollToBottom() {
+	if d.viewport.YOffset+d.viewport.Height-1 != d.cursor {
+		d.viewport.SetYOffset(d.clampCursorInViewport(d.cursor - d.viewport.Height + 1))
 	}
 }
 
@@ -105,7 +117,7 @@ func (d *datatable) gotoPlaying() {
 }
 
 func (d *datatable) cursor2middle() {
-	d.viewport.SetYOffset(d.clampCursorInViewport(d.cursor - (d.viewport.Height / 2)))
+	d.viewport.YOffset = (d.clampCursorInViewport(d.cursor - (d.viewport.Height / 2)))
 }
 
 func (d *datatable) updateRowOrderCmd(id string) tea.Cmd {
