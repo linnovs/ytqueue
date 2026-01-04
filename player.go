@@ -102,7 +102,13 @@ func (p *player) play(filePath, id string) error {
 
 	slog.Debug("sending loadfile command to mpv", slog.String("file", filePath))
 
-	return p.sendMPVCommand("loadfile", filePath, "replace")
+	if err := p.sendMPVCommand("loadfile", filePath, "replace"); err != nil {
+		slog.Error("failed to send loadfile command to mpv", slog.String("error", err.Error()))
+
+		return err
+	}
+
+	return p.sendMPVCommand("set_property", "pause", false)
 }
 
 func (p *player) stop() error {
