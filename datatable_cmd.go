@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -19,7 +20,12 @@ type deletedRowMsg struct {
 	notFound bool
 }
 
-type updateRowOrderMsg struct{}
+type updateRowOrderMsg struct {
+	id  string
+	tag int
+}
+
+type updatedRowOrderMsg struct{}
 
 const (
 	wlCopyCmd  = "wl-copy"
@@ -200,6 +206,44 @@ func (d *datatable) toggleWatchedStatusCmd(cursor int) tea.Cmd {
 		d.setRows(rows)
 
 		return nil
+	}
+}
+
+func (d *datatable) updateRowOrderCmd(id string) tea.Cmd {
+	return func() tea.Msg {
+		d.rowMu.Lock()
+		defer d.rowMu.Unlock()
+
+		slog.Debug("updating row order", slog.String("id", id))
+
+		idx := slices.IndexFunc(d.rows, func(r row) bool { return r[colID] == id })
+		upperIdx := clamp(idx-1, 0, len(d.rows)-1)
+		lowerIdx := clamp(idx+1, 0, len(d.rows)-1)
+
+		upperOrderUnix, err := strconv.Atoi(d.rows[upperIdx][colOrder])
+		if err != nil {
+			return errorMsg{fmt.Errorf("failed to parse upper order index: %w", err)}
+		}
+
+		lowerOrderUnix, err := strconv.Atoi(d.rows[lowerIdx][colOrder])
+		if err != nil {
+			return errorMsg{fmt.Errorf("failed to parse lower order index: %w", err)}
+		}
+
+		const inHalf = 2
+		newOrderUnix := int64((upperOrderUnix + lowerOrderUnix) / inHalf)
+
+		if err := d.datastore.updateVideoOrder(d.getCtx(), id, newOrderUnix); err != nil {
+			return errorMsg{fmt.Errorf("failed to update video order: %w", err)}
+		}
+
+		slog.Debug(
+			"updated row order",
+			slog.String("id", id),
+			slog.Int64("new_order_unix", newOrderUnix),
+		)
+
+		return updatedRowOrderMsg{}
 	}
 }
 

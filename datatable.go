@@ -28,26 +28,28 @@ const (
 type row map[column]string
 
 type datatable struct {
-	isInitialRefresh bool
-	width            int
-	nameTruncateLeft int
-	widths           map[column]int
-	getCtx           contextFn
-	datastore        *datastore
-	viewport         viewport.Model
-	styles           lipgloss.Style
-	headerStyle      lipgloss.Style
-	selectedRowStyle lipgloss.Style
-	focusedBGColor   lipgloss.Color
-	keymap           datatableKeymap
-	columns          []column
-	rowMu            sync.RWMutex
-	rows             []row
-	cursorMu         sync.RWMutex
-	cursor           int
-	isFocused        bool
-	player           *player
-	deleteConfirm    bool
+	isInitialRefresh    bool
+	width               int
+	nameTruncateLeft    int
+	widths              map[column]int
+	getCtx              contextFn
+	datastore           *datastore
+	viewport            viewport.Model
+	styles              lipgloss.Style
+	headerStyle         lipgloss.Style
+	selectedRowStyle    lipgloss.Style
+	focusedBGColor      lipgloss.Color
+	keymap              datatableKeymap
+	columns             []column
+	rowMu               sync.RWMutex
+	rows                []row
+	updateRowOrderTagMu sync.RWMutex
+	updateRowOrderTag   int
+	cursorMu            sync.RWMutex
+	cursor              int
+	isFocused           bool
+	player              *player
+	deleteConfirm       bool
 }
 
 func newDatatable(player *player, queries *database.Queries, getCtx contextFn) *datatable {
@@ -147,7 +149,13 @@ func (d *datatable) Update(msg tea.Msg) (*datatable, tea.Cmd) {
 		cmds = append(cmds, d.newVideoCmd(msg.filename, msg.url, msg.downloadPath))
 	case finishPlayingMsg:
 		cmds = append(cmds, d.playNextOrStopCmd())
-	case playbackChangedMsg, updateRowOrderMsg:
+	case updateRowOrderMsg:
+		d.updateRowOrderTagMu.RLock()
+		if d.updateRowOrderTag == msg.tag {
+			cmds = append(cmds, d.updateRowOrderCmd(msg.id))
+		}
+		d.updateRowOrderTagMu.RUnlock()
+	case playbackChangedMsg, updatedRowOrderMsg:
 		d.updateViewport()
 	case sectionChangedMsg:
 		d.isFocused = msg.section == sectionDatatable
