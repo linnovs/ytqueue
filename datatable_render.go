@@ -39,7 +39,7 @@ func (d *datatable) renderRow(r int) string {
 	isPlaying := d.player.getCurrentlyPlayingId() == d.rows[r][colID]
 	rowStyle := lipgloss.NewStyle()
 
-	if r == d.cursor {
+	if r == d.cursor || d.isSelected(r) {
 		rowStyle = d.selectedRowStyle
 
 		if d.isFocused {

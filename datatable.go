@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strings"
 	"sync"
 
 	"github.com/charmbracelet/bubbles/progress"
@@ -11,6 +12,10 @@ import (
 )
 
 func clamp(n, low, high int) int {
+	if low > high {
+		high, low = low, high
+	}
+
 	return min(max(n, low), high)
 }
 
@@ -47,6 +52,9 @@ type datatable struct {
 	updateRowOrderTag   int
 	cursorMu            sync.RWMutex
 	cursor              int
+	selectModeMu        sync.RWMutex
+	selectMode          bool
+	selectModeStart     int
 	isFocused           bool
 	player              *player
 	deleteConfirm       bool
@@ -113,6 +121,16 @@ func (d *datatable) getCopyOfRows() []row {
 	return rows
 }
 
+func (d *datatable) isSelected(r int) bool {
+	d.selectModeMu.RLock()
+	defer d.selectModeMu.RUnlock()
+
+	d.cursorMu.RLock()
+	defer d.cursorMu.RUnlock()
+
+	return d.selectMode && r == clamp(r, d.selectModeStart, d.cursor)
+}
+
 func (d *datatable) updateViewport() {
 	d.rowMu.RLock()
 	defer d.rowMu.RUnlock()
@@ -135,6 +153,34 @@ func (d *datatable) setRows(rows []row) {
 
 func (d *datatable) Init() tea.Cmd {
 	return d.refreshRowsCmd()
+}
+
+func (d *datatable) deletedMultiRowsFooterStr(msg deletedMultipleRowsMsg) string {
+	var footerMsg strings.Builder
+
+	footerMsg.WriteString("Deleted videos: \n")
+
+	for _, filename := range msg.filenames {
+		footerMsg.WriteString(filename + ", ")
+	}
+
+	if len(msg.notFounds) != 0 {
+		footerMsg.WriteString("\nVideos not found, removed entries from database: \n")
+
+		for _, filename := range msg.notFounds {
+			footerMsg.WriteString(filename + ", ")
+		}
+	}
+
+	if len(msg.dbErrors) != 0 {
+		footerMsg.WriteString("\nErrors occurred while deleting videos: \n")
+
+		for _, err := range msg.dbErrors {
+			footerMsg.WriteString(err.Error() + ", ")
+		}
+	}
+
+	return footerMsg.String()
 }
 
 func (d *datatable) Update(msg tea.Msg) (*datatable, tea.Cmd) {
@@ -171,6 +217,9 @@ func (d *datatable) Update(msg tea.Msg) (*datatable, tea.Cmd) {
 		}
 
 		cmds = append(cmds, footerMsgCmd(footerMsg, 0))
+	case deletedMultipleRowsMsg:
+		footerMsg := d.deletedMultiRowsFooterStr(msg)
+		cmds = append(cmds, footerMsgCmd(footerMsg, 0), d.toggleSelectModeCmd())
 	case updateProgressMsg:
 		cmds = append(cmds, d.player.progress.SetPercent(msg.percent))
 	case progress.FrameMsg:

@@ -20,6 +20,12 @@ type deletedRowMsg struct {
 	notFound bool
 }
 
+type deletedMultipleRowsMsg struct {
+	filenames []string
+	notFounds []string
+	dbErrors  []error
+}
+
 type updateRowOrderMsg struct {
 	id  string
 	tag int
@@ -193,6 +199,21 @@ func (d *datatable) playNextOrStopCmd() tea.Cmd {
 	}
 }
 
+func (d *datatable) toggleSelectModeCmd() tea.Cmd {
+	return func() tea.Msg {
+		d.selectModeMu.Lock()
+		defer d.selectModeMu.Unlock()
+
+		d.cursorMu.RLock()
+		defer d.cursorMu.RUnlock()
+
+		d.selectMode = !d.selectMode
+		d.selectModeStart = d.cursor
+
+		return nil
+	}
+}
+
 func (d *datatable) toggleWatchedStatusCmd(cursor int) tea.Cmd {
 	return func() tea.Msg {
 		rows := d.getCopyOfRows()
@@ -277,5 +298,63 @@ func (d *datatable) deleteRowCmd(cursor int) tea.Cmd {
 		}
 
 		return msg
+	}
+}
+
+func (d *datatable) deleteSelectedRowsCmd() tea.Cmd {
+	return func() tea.Msg {
+		d.selectModeMu.RLock()
+		defer d.selectModeMu.RUnlock()
+
+		rows := d.getCopyOfRows()
+		deletedFilenames := make([]string, 0)
+		deleteFailedFiles := make([]string, 0)
+		remainingRows := make([]row, 0)
+		dbErrors := make([]error, 0)
+
+		for idx, row := range rows {
+			if !d.isSelected(idx) {
+				remainingRows = append(remainingRows, row)
+				continue
+			}
+
+			deleted := true
+
+			fname := filepath.Clean(filepath.Join(row[colLocation], row[colName]))
+			if err := os.Remove(fname); err != nil {
+				if !errors.Is(err, os.ErrNotExist) {
+					deleteFailedFiles = append(deleteFailedFiles, row[colName])
+					deleted = false
+				}
+			}
+
+			if err := d.datastore.deleteVideo(d.getCtx(), row[colID]); err != nil {
+				dbErrors = append(
+					dbErrors,
+					fmt.Errorf("failed to delete video %s from datastore: %w", row[colName], err),
+				)
+				deleted = false
+			}
+
+			if !deleted {
+				remainingRows = append(remainingRows, row)
+			} else {
+				deletedFilenames = append(deletedFilenames, row[colName])
+			}
+		}
+
+		d.setRows(remainingRows)
+
+		d.cursorMu.Lock()
+		if d.cursor >= len(remainingRows)-1 && d.cursor > 0 {
+			d.cursor = len(remainingRows) - 1
+		}
+		d.cursorMu.Unlock()
+
+		return deletedMultipleRowsMsg{
+			filenames: deletedFilenames,
+			notFounds: deleteFailedFiles,
+			dbErrors:  dbErrors,
+		}
 	}
 }

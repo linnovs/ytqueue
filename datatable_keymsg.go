@@ -55,6 +55,9 @@ func (d *datatable) keyMsgHandler(msg tea.KeyMsg) tea.Cmd {
 	switch {
 	case key.Matches(msg, key.NewBinding(key.WithKeys("esc"))):
 		d.deleteConfirm = false
+		d.selectModeMu.Lock()
+		d.selectMode = false
+		d.selectModeMu.Unlock()
 	case key.Matches(msg, d.keymap.nameScrollLeft):
 		d.nameScrollLeft(nameScrollAmount)
 	case key.Matches(msg, d.keymap.nameScrollRight):
@@ -67,12 +70,20 @@ func (d *datatable) keyMsgHandler(msg tea.KeyMsg) tea.Cmd {
 		cmd = d.toggleWatchedStatusCmd(d.cursor)
 	case key.Matches(msg, d.keymap.deleteRow):
 		if d.deleteConfirm {
-			cmd = d.deleteRowCmd(d.cursor)
+			d.selectModeMu.RLock()
+			if d.selectMode {
+				cmd = d.deleteSelectedRowsCmd()
+			} else {
+				cmd = d.deleteRowCmd(d.cursor)
+			}
+			d.selectModeMu.RUnlock()
 		}
 
 		d.deleteConfirm = !d.deleteConfirm
 	case key.Matches(msg, d.keymap.refresh):
 		cmd = d.refreshRowsCmd()
+	case key.Matches(msg, d.keymap.selectMode):
+		cmd = d.toggleSelectModeCmd()
 	case key.Matches(msg, d.keymap.copyURL):
 		cmd = d.copyURLCmd(d.cursor)
 	case key.Matches(msg, d.keymap.pasteURL):
