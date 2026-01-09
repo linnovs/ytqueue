@@ -74,11 +74,13 @@ func (p *player) observePropertyChange(msg mpvEvent) {
 		)
 
 		if paused, ok := msg.Data.(bool); ok {
-			if paused {
+			if paused && p.getPlaying() != playingStatusStopped {
 				p.setPlaying(playingStatusPaused)
-			} else {
-				p.setPlaying(playingStatusPlaying)
+
+				return
 			}
+
+			p.setPlaying(playingStatusPlaying)
 		}
 	case "eof-reached":
 		slog.Debug(

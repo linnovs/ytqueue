@@ -190,6 +190,13 @@ func (d *datatable) playNextOrStopCmd() tea.Cmd {
 		for i := idx - 1; i >= 0; i-- {
 			row := d.rows[i]
 			if row[colWatched] == isWatchedNo {
+				slog.Debug(
+					"playing next unwatched video",
+					slog.String("id", row[colID]),
+					slog.String("name", row[colName]),
+				)
+				d.player.setPlaying(playingStatusStopped)
+
 				return d.playStopRowCmd(row[colID])()
 			}
 		}

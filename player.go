@@ -98,13 +98,11 @@ func (p *player) play(filePath, id string) error {
 		}
 	}
 
-	slog.Debug("sending loadfile command to mpv", slog.String("file", filePath))
-
-	if err := p.sendMPVCommand("loadfile", filePath, "replace"); err != nil {
-		slog.Error("failed to send loadfile command to mpv", slog.String("error", err.Error()))
-
-		return err
-	}
+	slog.Debug(
+		"preparing to play file",
+		slog.String("file", filePath),
+		slog.String("currentStatus", p.getPlaying().String()),
+	)
 
 	cmds := make([]any, 0)
 	cmds = append(cmds, "set_property")
@@ -117,6 +115,18 @@ func (p *player) play(filePath, id string) error {
 		status = playingStatusPaused
 
 		cmds = append(cmds, "pause", true)
+	}
+
+	slog.Debug(
+		"sending loadfile command to mpv",
+		slog.String("file", filePath),
+		slog.String("nextStatus", status.String()),
+	)
+
+	if err := p.sendMPVCommand("loadfile", filePath, "replace"); err != nil {
+		slog.Error("failed to send loadfile command to mpv", slog.String("error", err.Error()))
+
+		return err
 	}
 
 	defer p.setPlaying(status, id)
