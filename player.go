@@ -98,8 +98,6 @@ func (p *player) play(filePath, id string) error {
 		}
 	}
 
-	defer p.setPlaying(playingStatusPlaying, id)
-
 	slog.Debug("sending loadfile command to mpv", slog.String("file", filePath))
 
 	if err := p.sendMPVCommand("loadfile", filePath, "replace"); err != nil {
@@ -108,17 +106,38 @@ func (p *player) play(filePath, id string) error {
 		return err
 	}
 
-	return p.sendMPVCommand("set_property", "pause", false)
+	cmds := make([]any, 0)
+	cmds = append(cmds, "set_property")
+	status := playingStatusPlaying
+
+	switch p.getPlaying() {
+	case playingStatusPlaying, playingStatusStopped:
+		cmds = append(cmds, "pause", false)
+	case playingStatusPaused:
+		status = playingStatusPaused
+
+		cmds = append(cmds, "pause", true)
+	}
+
+	defer p.setPlaying(status, id)
+
+	return p.sendMPVCommand(cmds...)
 }
 
 func (p *player) stop() error {
-	if !p.isRunning() || !p.isPlaying() {
+	if !p.isRunning() {
 		return nil
 	}
 
-	defer p.setPlaying(playingStatusStopped)
+	switch p.getPlaying() {
+	case playingStatusPlaying:
+		return p.sendMPVCommand("set_property", "pause", true)
+	case playingStatusPaused:
+		defer p.setPlaying(playingStatusStopped)
+		return p.sendMPVCommand("quit")
+	}
 
-	return p.sendMPVCommand("stop")
+	return nil
 }
 
 func (p *player) quit() tea.Cmd {
