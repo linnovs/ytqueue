@@ -13,11 +13,8 @@ import (
 )
 
 type status struct {
-	queued                int
 	titleStyle            lipgloss.Style
 	titleBarStyle         lipgloss.Style
-	inqueueStyle          lipgloss.Style
-	queueSizeStyle        lipgloss.Style
 	availableSpaceStyle   lipgloss.Style
 	freeSpaceStyle        lipgloss.Style
 	statusStyle           lipgloss.Style
@@ -46,8 +43,6 @@ func newStatus(downloadDir string) *status {
 	titleStyle := componentStyle.Italic(true).
 		Background(lipgloss.Color("57")).
 		SetString("DOWNLOADER")
-	inqueueStyle := componentStyle.Background(lipgloss.Color("30")).SetString("INQUEUE")
-	queueSizeStyle := componentStyle.Background(lipgloss.Color("39"))
 	filenameStyle := componentStyle.Foreground(lipgloss.Color("39"))
 	availableSpaceStyle := componentStyle.Background(lipgloss.Color("63")).SetString("AVAILABLE")
 	freeSpaceStyle := componentStyle.Background(lipgloss.Color("69"))
@@ -67,12 +62,9 @@ func newStatus(downloadDir string) *status {
 	style := lipgloss.NewStyle().BorderStyle(lipgloss.RoundedBorder())
 
 	return &status{
-		queued:              0,
 		width:               0,
 		titleStyle:          titleStyle,
 		titleBarStyle:       titleBarStyle,
-		inqueueStyle:        inqueueStyle,
-		queueSizeStyle:      queueSizeStyle,
 		availableSpaceStyle: availableSpaceStyle,
 		freeSpaceStyle:      freeSpaceStyle,
 		filename:            newRunningTextModel(filenameWidth, filenameStyle),
@@ -111,12 +103,9 @@ func (d *status) Update(msg tea.Msg) (*status, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		d.width = msg.Width - d.style.GetHorizontalFrameSize()
-	case downloadQueuedMsg:
-		d.queued++
 	case startDownloadMsg:
 		d.status = downloadStatusPreparing
 	case downloadCompletedMsg:
-		d.queued--
 		d.status, d.speed, d.elapsed, d.eta = downloadStatusIdle, 0, 0, 0
 		cmds = append(cmds, d.progress.SetPercent(0), d.getFreeSpaceCmd())
 	case downloadErrorMsg:
@@ -194,14 +183,12 @@ func (d *status) View() string {
 	w := lipgloss.Width
 
 	title := d.titleStyle.Render()
-	queueSize := d.queueSizeStyle.Render(fmt.Sprint(d.queued))
-	inqueue := lipgloss.JoinHorizontal(lipgloss.Top, d.inqueueStyle.Render(), queueSize)
 	freeSpace := d.freeSpaceStyle.Render(formatBytes(d.downloadPathFreeSpace))
 	available := lipgloss.JoinHorizontal(lipgloss.Top, d.availableSpaceStyle.Render(), freeSpace)
 	info := lipgloss.NewStyle().
 		Width(d.width - w(title)).
 		AlignHorizontal(lipgloss.Right).
-		Render(lipgloss.JoinHorizontal(lipgloss.Top, d.downloadPath, available, inqueue))
+		Render(lipgloss.JoinHorizontal(lipgloss.Top, d.downloadPath, available))
 	titleBar := d.titleBarStyle.Render(lipgloss.JoinHorizontal(lipgloss.Top, title, info))
 
 	var filename, speed, elapsed, eta string

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/url"
 	"strings"
 
@@ -17,11 +18,14 @@ type submitURLMsg struct {
 }
 
 type urlPrompt struct {
-	prompt    textinput.Model
-	spinner   spinner.Model
-	queueList []string
-	style     lipgloss.Style
-	keymap    promptKeymap
+	width         int
+	prompt        textinput.Model
+	spinner       spinner.Model
+	queueList     []string
+	style         lipgloss.Style
+	inqueueHeader string
+	inqueueStyle  lipgloss.Style
+	keymap        promptKeymap
 }
 
 func newURLPrompt() *urlPrompt {
@@ -34,8 +38,20 @@ func newURLPrompt() *urlPrompt {
 	s := spinner.New()
 	s.Spinner = spinner.Points
 	s.Style = s.Style.Foreground(lipgloss.Color("99"))
+	inqueueHeader := lipgloss.NewStyle().Bold(true).Padding(0, 1).
+		Background(lipgloss.Color("30")).
+		SetString("INQUEUE").String()
+	is := lipgloss.NewStyle().Bold(true).Padding(0, 1).Background(lipgloss.Color("39"))
 
-	return &urlPrompt{i, s, l, style, newPromptKeymap()}
+	return &urlPrompt{
+		prompt:        i,
+		spinner:       s,
+		queueList:     l,
+		inqueueHeader: inqueueHeader,
+		inqueueStyle:  is,
+		style:         style,
+		keymap:        newPromptKeymap(),
+	}
 }
 
 func (p *urlPrompt) Init() tea.Cmd {
@@ -53,8 +69,7 @@ func (p *urlPrompt) Update(msg tea.Msg) (*urlPrompt, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		p.prompt.Width = msg.Width - p.style.GetHorizontalFrameSize()
-		p.prompt.Width -= lipgloss.Width(p.prompt.Prompt) + 1
+		p.width = msg.Width - p.style.GetHorizontalFrameSize()
 	case sectionChangedMsg:
 		if msg.section == sectionURLPrompt {
 			p.style = p.style.BorderForeground(activeBorderColor)
@@ -141,7 +156,12 @@ func (p *urlPrompt) renderQueueList() string {
 }
 
 func (p *urlPrompt) View() string {
+	w := lipgloss.Width
+	queueSize := p.inqueueStyle.Render(fmt.Sprint(len(p.queueList)))
+	p.prompt.Width = p.width - w(p.prompt.Prompt) - 1 // extra rune size
+	p.prompt.Width -= w(p.inqueueHeader) + w(queueSize)
 	content := p.prompt.View()
+	content = lipgloss.JoinHorizontal(lipgloss.Top, content, p.inqueueHeader, queueSize)
 
 	queueList := p.renderQueueList()
 	if queueList != "" {
