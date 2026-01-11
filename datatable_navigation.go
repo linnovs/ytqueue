@@ -11,7 +11,7 @@ func (d *datatable) clampCursor(cursor int) int {
 	return clamp(cursor, 0, len(d.rows)-1)
 }
 
-func (d *datatable) clampCursorInViewport(cursor int) int {
+func (d *datatable) clampViewportOffset(cursor int) int {
 	return clamp(cursor, 0, len(d.rows)-d.viewport.Height)
 }
 
@@ -23,7 +23,7 @@ func (d *datatable) scrollUp() {
 
 func (d *datatable) scrollDown() {
 	if d.cursor >= d.viewport.YOffset+d.viewport.Height {
-		d.viewport.SetYOffset(d.clampCursorInViewport(d.cursor - d.viewport.Height + 1))
+		d.viewport.SetYOffset(d.clampViewportOffset(d.cursor - d.viewport.Height + 1))
 	}
 }
 
@@ -35,7 +35,7 @@ func (d *datatable) scrollToTop() {
 
 func (d *datatable) scrollToBottom() {
 	if d.viewport.YOffset+d.viewport.Height-1 != d.cursor {
-		d.viewport.SetYOffset(d.clampCursorInViewport(d.cursor - d.viewport.Height + 1))
+		d.viewport.SetYOffset(d.clampViewportOffset(d.cursor - d.viewport.Height + 1))
 	}
 }
 
@@ -115,7 +115,7 @@ func (d *datatable) gotoPlaying() {
 }
 
 func (d *datatable) cursor2middle() {
-	d.viewport.YOffset = (d.clampCursorInViewport(d.cursor - (d.viewport.Height / 2)))
+	d.viewport.YOffset = (d.clampViewportOffset(d.cursor - (d.viewport.Height / 2)))
 }
 
 func (d *datatable) moveRow(n int) tea.Cmd {
