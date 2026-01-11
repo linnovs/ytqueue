@@ -111,7 +111,12 @@ func (d *datatable) gotoPlaying() {
 
 	idx := slices.IndexFunc(d.rows, playingIDIndexFunc(d.player.getCurrentlyPlayingId()))
 	d.cursor = d.clampCursor(idx)
-	d.cursor2middle()
+
+	if d.cursor < d.viewport.YOffset {
+		d.scrollToTop()
+	} else if d.cursor >= d.viewport.YOffset+d.viewport.Height {
+		d.scrollToBottom()
+	}
 }
 
 func (d *datatable) cursor2middle() {
