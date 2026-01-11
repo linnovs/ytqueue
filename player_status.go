@@ -9,7 +9,7 @@ func (p *player) isPlaying() bool {
 	p.playingMu.Lock()
 	defer p.playingMu.Unlock()
 
-	return p.playing == playingStatusPlaying
+	return p.playing != playingStatusStopped
 }
 
 func (p *player) getPlaying() playingStatus {

@@ -74,7 +74,7 @@ func (p *player) observePropertyChange(msg mpvEvent) {
 		)
 
 		if paused, ok := msg.Data.(bool); ok {
-			if paused && p.getPlaying() != playingStatusStopped {
+			if paused && p.isPlaying() {
 				p.setPlaying(playingStatusPaused)
 
 				return

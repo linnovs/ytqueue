@@ -116,8 +116,7 @@ func (d *datatable) playStopRowCmd(id string) tea.Cmd {
 
 		slog.Debug("playStopRowCmd", slog.String("requestedId", id))
 
-		if d.player.isRunning() && d.player.getCurrentlyPlayingId() == id &&
-			d.player.getPlaying() != playingStatusStopped {
+		if d.player.isRunning() && d.player.getCurrentlyPlayingId() == id && d.player.isPlaying() {
 			if err := d.player.stop(); err != nil {
 				return errorMsg{err: fmt.Errorf("failed to stop player: %w", err)}
 			}
