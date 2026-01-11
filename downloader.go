@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"sync"
 	"time"
 
@@ -84,11 +85,12 @@ func (d *downloader) readStderr(stderrPipe io.ReadCloser) {
 	}
 }
 
-func (d *downloader) download(ctx context.Context, url string) {
+func (d *downloader) download(ctx context.Context, url string, secondTry ...bool) {
 	const concurrentFragments = "100"
-	cmd := exec.CommandContext(
-		ctx,
-		"yt-dlp",
+	const impersonateArgPos = 2
+
+	args := make([]string, 0)
+	args = append(args,
 		"--concurrent-fragments",
 		concurrentFragments,
 		"--print",
@@ -102,11 +104,17 @@ func (d *downloader) download(ctx context.Context, url string) {
 		"--output",
 		titleFormat,
 		"--paths",
-		fmt.Sprintf("home:%s", d.downloadDir), // #nosec G204
+		fmt.Sprintf("home:%s", d.downloadDir),
 		"--paths",
-		fmt.Sprintf("temp:%s", d.tempDir), // #nosec G204
+		fmt.Sprintf("temp:%s", d.tempDir),
 		url,
 	)
+
+	if len(secondTry) > 0 && secondTry[0] {
+		args = slices.Insert(args, impersonateArgPos, "--impersonate", "chrome")
+	}
+
+	cmd := exec.CommandContext(ctx, "yt-dlp", args...) // #nosec G204
 
 	stdoutPipe, err := cmd.StdoutPipe()
 	if err != nil {
@@ -135,6 +143,10 @@ func (d *downloader) download(ctx context.Context, url string) {
 	go d.readStderr(stderrPipe)
 
 	if err := cmd.Wait(); err != nil {
+		if len(secondTry) == 0 {
+			d.download(ctx, url, true)
+		}
+
 		return
 	}
 }
