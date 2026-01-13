@@ -13,9 +13,11 @@ import (
 )
 
 type config struct {
-	DownloadPath string `koanf:"download.path"`
-	TempName     string `koanf:"download.temp_name"`
-	tempDir      string
+	DownloadPath   string `koanf:"download.path"`
+	TempName       string `koanf:"download.temp_name"`
+	UserAgent      string `koanf:"download.user_agent"`
+	BrowserCookies string `koanf:"download.browser_cookies"`
+	tempDir        string
 }
 
 func loadConfig() (*config, error) {

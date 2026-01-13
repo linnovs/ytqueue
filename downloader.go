@@ -9,7 +9,6 @@ import (
 	"log/slog"
 	"os/exec"
 	"path/filepath"
-	"slices"
 	"sync"
 	"time"
 
@@ -17,21 +16,29 @@ import (
 )
 
 type downloader struct {
-	p           *tea.Program
-	downloadDir string
-	tempDir     string
-	queue       chan string
-	closeCh     chan struct{}
-	wg          *sync.WaitGroup
+	p                *tea.Program
+	downloadDir      string
+	tempDir          string
+	browserCookies   string
+	browserUserAgent string
+	queue            chan string
+	wg               *sync.WaitGroup
 }
 
 func newDownloader(cfg *config) *downloader {
 	const queueSize = 100
 	q := make(chan string, queueSize)
-	closeCh := make(chan struct{})
 	wg := new(sync.WaitGroup)
 
-	return &downloader{nil, cfg.DownloadPath, cfg.tempDir, q, closeCh, wg}
+	return &downloader{
+		p:                nil,
+		downloadDir:      cfg.DownloadPath,
+		tempDir:          cfg.tempDir,
+		browserCookies:   cfg.BrowserCookies,
+		browserUserAgent: cfg.UserAgent,
+		queue:            q,
+		wg:               wg,
+	}
 }
 
 func (d *downloader) setProgram(p *tea.Program) {
@@ -81,13 +88,13 @@ func (d *downloader) readStderr(stderrPipe io.ReadCloser) {
 
 	for scanner.Scan() {
 		err := fmt.Errorf("[downloader] %s", scanner.Text())
+		slog.Error("download stderr", slog.String("error", err.Error()))
 		d.p.Send(errorMsg{err})
 	}
 }
 
 func (d *downloader) download(ctx context.Context, url string, secondTry ...bool) {
 	const concurrentFragments = "100"
-	const impersonateArgPos = 2
 
 	args := make([]string, 0)
 	args = append(args,
@@ -107,14 +114,24 @@ func (d *downloader) download(ctx context.Context, url string, secondTry ...bool
 		fmt.Sprintf("home:%s", d.downloadDir),
 		"--paths",
 		fmt.Sprintf("temp:%s", d.tempDir),
-		url,
 	)
 
-	if len(secondTry) > 0 && secondTry[0] {
-		args = slices.Insert(args, impersonateArgPos, "--impersonate", "chrome")
+	if d.browserUserAgent != "" {
+		args = append(args, "--user-agent", d.browserUserAgent)
 	}
 
+	if d.browserCookies != "" {
+		args = append(args, "--cookies-from-browser", d.browserCookies)
+	}
+
+	if len(secondTry) > 0 && secondTry[0] {
+		args = append(args, "--impersonate", "chrome")
+	}
+
+	args = append(args, url)
 	cmd := exec.CommandContext(ctx, "yt-dlp", args...) // #nosec G204
+
+	slog.Debug("executing download command", slog.String("command", cmd.String()))
 
 	stdoutPipe, err := cmd.StdoutPipe()
 	if err != nil {
