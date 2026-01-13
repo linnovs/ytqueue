@@ -111,6 +111,13 @@ func (d *datatable) getIDAtIndex(idx int) string {
 	return d.rows[idx][colID]
 }
 
+func (d *datatable) getCursorID() string {
+	d.cursorMu.RLock()
+	defer d.cursorMu.RUnlock()
+
+	return d.getIDAtIndex(d.cursor)
+}
+
 func (d *datatable) getCopyOfRows() []row {
 	d.rowMu.RLock()
 	defer d.rowMu.RUnlock()

@@ -102,8 +102,15 @@ func (d *datatable) newVideoCmd(name, url, location string) tea.Cmd {
 			return errorMsg{err}
 		}
 
+		oldId := d.getCursorID()
 		rows := append([]row{videoToRow(*video)}, d.getCopyOfRows()...)
+
 		d.setRows(rows)
+
+		d.cursorMu.Lock()
+		idx := slices.IndexFunc(rows, playingIDIndexFunc(oldId))
+		d.cursor = clamp(idx, 0, len(rows)-1)
+		d.cursorMu.Unlock()
 
 		return nil
 	}
