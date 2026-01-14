@@ -47,7 +47,7 @@ func (d *downloader) setProgram(p *tea.Program) {
 
 const (
 	titleFormat            = "%(title).50s [%(id)s].%(ext)s"
-	progressUpdateInterval = time.Millisecond * 100
+	progressUpdateInterval = time.Millisecond * 500
 )
 
 func (d *downloader) readStdout(stdoutPipe io.ReadCloser, url string) {
