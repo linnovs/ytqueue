@@ -8,6 +8,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/linnovs/ytqueue/database"
@@ -82,6 +83,7 @@ func newModel(
 
 func (m appModel) Init() tea.Cmd {
 	return tea.Batch(
+		textinput.Blink,
 		m.urlPrompt.Init(),
 		m.topbar.Init(),
 		m.status.Init(),
