@@ -370,3 +370,62 @@ func (d *datatable) deleteSelectedRowsCmd() tea.Cmd {
 		}
 	}
 }
+
+func (d *datatable) startRenameModeCmd() tea.Cmd {
+	return func() tea.Msg {
+		d.rowMu.RLock()
+		defer d.rowMu.RUnlock()
+
+		d.cursorMu.RLock()
+		defer d.cursorMu.RUnlock()
+
+		d.renameMode = true
+		d.renameInput.Prompt = "New name: "
+		d.renameInput.Placeholder = d.rows[d.cursor][colName]
+
+		return d.renameInput.Focus()()
+	}
+}
+
+func (d *datatable) stopRenameModeCmd() tea.Cmd {
+	return func() tea.Msg {
+		if !d.renameMode {
+			return nil
+		}
+
+		d.renameMode = false
+		d.renameInput.Blur()
+
+		return nil
+	}
+}
+
+func (d *datatable) submitRenameModeCmd() tea.Cmd {
+	return func() tea.Msg {
+		d.cursorMu.RLock()
+		idx := d.cursor
+		d.cursorMu.RUnlock()
+
+		rows := d.getCopyOfRows()
+		row := rows[idx]
+
+		fname := d.renameInput.Value()
+		oldName := filepath.Clean(filepath.Join(row[colLocation], row[colName]))
+		newName := filepath.Clean(filepath.Join(row[colLocation], fname))
+
+		if err := os.Rename(oldName, newName); err != nil {
+			if !errors.Is(err, os.ErrNotExist) {
+				return errorMsg{fmt.Errorf("failed to rename video file: %w", err)}
+			}
+		}
+
+		if err := d.datastore.renameVideo(d.getCtx(), row[colID], fname); err != nil {
+			return errorMsg{fmt.Errorf("failed to rename video: %w", err)}
+		}
+
+		rows[idx][colName] = fname
+		d.setRows(rows)
+
+		return d.stopRenameModeCmd()()
+	}
+}

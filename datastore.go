@@ -144,6 +144,18 @@ func (s *datastore) deleteVideo(ctx context.Context, idStr string) error {
 	return s.queries.DeleteVideo(ctx, id)
 }
 
+func (s *datastore) renameVideo(ctx context.Context, idStr, newName string) error {
+	id, err := idStrToInt(idStr)
+	if err != nil {
+		return err
+	}
+
+	return s.queries.RenameVideo(ctx, database.RenameVideoParams{
+		Name: newName,
+		ID:   id,
+	})
+}
+
 func (s *datastore) Close() error {
 	return s.queries.Close()
 }

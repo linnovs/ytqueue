@@ -40,6 +40,17 @@ func (d *datatable) keyMsgHandleMovement(msg tea.KeyMsg) tea.Cmd {
 	return cmd
 }
 
+func (d *datatable) renameModeKeymsg(msg tea.KeyMsg) tea.Cmd {
+	switch {
+	case key.Matches(msg, key.NewBinding(key.WithKeys("enter"))):
+		return d.submitRenameModeCmd()
+	case key.Matches(msg, key.NewBinding(key.WithKeys("esc"))):
+		return d.stopRenameModeCmd()
+	}
+
+	return nil
+}
+
 func (d *datatable) keyMsgHandler(msg tea.KeyMsg) tea.Cmd {
 	d.cursorMu.Lock()
 	defer d.cursorMu.Unlock()
@@ -48,6 +59,10 @@ func (d *datatable) keyMsgHandler(msg tea.KeyMsg) tea.Cmd {
 
 	if !d.isFocused {
 		return cmd
+	}
+
+	if d.renameMode {
+		return d.renameModeKeymsg(msg)
 	}
 
 	const nameScrollAmount = 5
@@ -64,6 +79,8 @@ func (d *datatable) keyMsgHandler(msg tea.KeyMsg) tea.Cmd {
 		d.nameScrollRight(nameScrollAmount)
 	case key.Matches(msg, d.keymap.cursor2middle):
 		d.cursor2middle()
+	case key.Matches(msg, d.keymap.renameFile):
+		cmd = d.startRenameModeCmd()
 	case key.Matches(msg, d.keymap.playOrStop):
 		cmd = d.playStopRowCmd(d.getIDAtIndex(d.cursor))
 	case key.Matches(msg, d.keymap.toggleWatched):

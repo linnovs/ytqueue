@@ -33,6 +33,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getVideosStmt, err = db.PrepareContext(ctx, getVideos); err != nil {
 		return nil, fmt.Errorf("error preparing query GetVideos: %w", err)
 	}
+	if q.renameVideoStmt, err = db.PrepareContext(ctx, renameVideo); err != nil {
+		return nil, fmt.Errorf("error preparing query RenameVideo: %w", err)
+	}
 	if q.setWatchedVideoStmt, err = db.PrepareContext(ctx, setWatchedVideo); err != nil {
 		return nil, fmt.Errorf("error preparing query SetWatchedVideo: %w", err)
 	}
@@ -60,6 +63,11 @@ func (q *Queries) Close() error {
 	if q.getVideosStmt != nil {
 		if cerr := q.getVideosStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getVideosStmt: %w", cerr)
+		}
+	}
+	if q.renameVideoStmt != nil {
+		if cerr := q.renameVideoStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing renameVideoStmt: %w", cerr)
 		}
 	}
 	if q.setWatchedVideoStmt != nil {
@@ -119,6 +127,7 @@ type Queries struct {
 	addVideoStmt            *sql.Stmt
 	deleteVideoStmt         *sql.Stmt
 	getVideosStmt           *sql.Stmt
+	renameVideoStmt         *sql.Stmt
 	setWatchedVideoStmt     *sql.Stmt
 	toggleWatchedStatusStmt *sql.Stmt
 	updateVideoOrderStmt    *sql.Stmt
@@ -131,6 +140,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		addVideoStmt:            q.addVideoStmt,
 		deleteVideoStmt:         q.deleteVideoStmt,
 		getVideosStmt:           q.getVideosStmt,
+		renameVideoStmt:         q.renameVideoStmt,
 		setWatchedVideoStmt:     q.setWatchedVideoStmt,
 		toggleWatchedStatusStmt: q.toggleWatchedStatusStmt,
 		updateVideoOrderStmt:    q.updateVideoOrderStmt,

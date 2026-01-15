@@ -25,6 +25,12 @@ func (d *datatable) renderRow(r int) string {
 	d.cursorMu.RLock()
 	defer d.cursorMu.RUnlock()
 
+	if d.renameMode && r == d.cursor {
+		d.renameInput.Width = d.widths[colName]
+
+		return d.renameInput.View()
+	}
+
 	var s strings.Builder
 
 	if d.deleteConfirm && r == d.cursor {

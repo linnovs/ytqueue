@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/charmbracelet/bubbles/progress"
+	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -58,6 +59,8 @@ type datatable struct {
 	isFocused           bool
 	player              *player
 	deleteConfirm       bool
+	renameMode          bool
+	renameInput         textinput.Model
 }
 
 func newDatatable(player *player, queries *database.Queries, getCtx contextFn) *datatable {
@@ -80,6 +83,7 @@ func newDatatable(player *player, queries *database.Queries, getCtx contextFn) *
 		keymap:         newDatatableKeymap(),
 		columns:        []column{colWatched, colName, colURL, colLocation},
 		player:         player,
+		renameInput:    textinput.New(),
 	}
 
 	return d
@@ -237,6 +241,13 @@ func (d *datatable) Update(msg tea.Msg) (*datatable, tea.Cmd) {
 		cmds = append(cmds, d.player.quit())
 	case tea.KeyMsg:
 		cmds = append(cmds, d.keyMsgHandler(msg))
+	}
+
+	if d.renameMode {
+		renameInput, cmd := d.renameInput.Update(msg)
+		d.renameInput = renameInput
+
+		cmds = append(cmds, cmd)
 	}
 
 	return d, tea.Batch(cmds...)

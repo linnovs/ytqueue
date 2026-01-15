@@ -79,6 +79,20 @@ func (q *Queries) GetVideos(ctx context.Context) ([]Video, error) {
 	return items, nil
 }
 
+const renameVideo = `-- name: RenameVideo :exec
+UPDATE videos SET name = ? WHERE id = ?
+`
+
+type RenameVideoParams struct {
+	Name string `json:"name"`
+	ID   int64  `json:"id"`
+}
+
+func (q *Queries) RenameVideo(ctx context.Context, arg RenameVideoParams) error {
+	_, err := q.exec(ctx, q.renameVideoStmt, renameVideo, arg.Name, arg.ID)
+	return err
+}
+
 const setWatchedVideo = `-- name: SetWatchedVideo :one
 UPDATE videos SET is_watched = true WHERE id = ? RETURNING id, name, url, location, is_watched, order_index, created_at
 `

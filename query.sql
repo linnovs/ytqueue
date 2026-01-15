@@ -15,3 +15,6 @@ UPDATE videos SET order_index = ? WHERE id = ?;
 
 -- name: DeleteVideo :exec
 DELETE FROM videos WHERE id = ?;
+
+-- name: RenameVideo :exec
+UPDATE videos SET name = ? WHERE id = ?;

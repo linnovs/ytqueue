@@ -48,6 +48,7 @@ type datatableKeymap struct {
 	playOrStop, toggleWatched, deleteRow, refresh   key.Binding
 	nameScrollLeft, nameScrollRight                 key.Binding
 	selectMode, copyURL, pasteURL                   key.Binding
+	renameFile                                      key.Binding
 }
 
 func (d datatableKeymap) ShortHelp() []key.Binding {
@@ -60,7 +61,7 @@ func (d datatableKeymap) FullHelp() [][]key.Binding {
 		{d.lineUp, d.lineDown, d.moveUp, d.moveDown, d.nameScrollLeft, d.nameScrollRight},
 		{d.pageUp, d.pageDown, d.halfPageUp, d.halfPageDown, d.scrollToTop, d.scrollToBottom},
 		{d.gotoTop, d.gotoBottom, d.gotoPlaying, d.cursor2middle, d.copyURL, d.pasteURL},
-		{d.playOrStop, d.toggleWatched, d.deleteRow, d.selectMode, d.refresh},
+		{d.renameFile, d.playOrStop, d.toggleWatched, d.deleteRow, d.selectMode, d.refresh},
 	}
 }
 
@@ -121,6 +122,7 @@ func newDatatableKeymap() datatableKeymap {
 			key.WithHelp("c", "go to currently playing"),
 		),
 		cursor2middle: key.NewBinding(key.WithKeys("z"), key.WithHelp("z", "cursor to middle")),
+		renameFile:    key.NewBinding(key.WithKeys("e"), key.WithHelp("e", "rename file")),
 		playOrStop:    key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "play/stop")),
 		toggleWatched: key.NewBinding(
 			key.WithKeys(" "),
