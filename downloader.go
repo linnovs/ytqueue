@@ -21,6 +21,7 @@ type downloader struct {
 	tempDir          string
 	browserCookies   string
 	browserUserAgent string
+	impersonate      string
 	queue            chan string
 	wg               *sync.WaitGroup
 }
@@ -30,12 +31,18 @@ func newDownloader(cfg *config) *downloader {
 	q := make(chan string, queueSize)
 	wg := new(sync.WaitGroup)
 
+	impersonate := cfg.Impersonate
+	if impersonate == "" {
+		impersonate = "firefox"
+	}
+
 	return &downloader{
 		p:                nil,
 		downloadDir:      cfg.DownloadPath,
 		tempDir:          cfg.tempDir,
 		browserCookies:   cfg.BrowserCookies,
 		browserUserAgent: cfg.UserAgent,
+		impersonate:      impersonate,
 		queue:            q,
 		wg:               wg,
 	}
@@ -125,7 +132,7 @@ func (d *downloader) download(ctx context.Context, url string, secondTry ...bool
 	}
 
 	if len(secondTry) > 0 && secondTry[0] {
-		args = append(args, "--impersonate", "chrome")
+		args = append(args, "--impersonate", d.impersonate)
 	}
 
 	args = append(args, url)

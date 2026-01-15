@@ -17,6 +17,7 @@ type config struct {
 	TempName       string `koanf:"download.temp_name"`
 	UserAgent      string `koanf:"download.user_agent"`
 	BrowserCookies string `koanf:"download.browser_cookies"`
+	Impersonate    string `koanf:"download.impersonate"`
 	tempDir        string
 }
 
