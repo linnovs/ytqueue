@@ -15,7 +15,7 @@ require (
 	github.com/knadh/koanf/v2 v2.3.0
 	github.com/mattn/go-runewidth v0.0.19
 	golang.org/x/sys v0.40.0
-	modernc.org/sqlite v1.44.1
+	modernc.org/sqlite v1.44.3
 )
 
 require (
