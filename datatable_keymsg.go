@@ -1,11 +1,11 @@
 package main
 
 import (
-	"github.com/charmbracelet/bubbles/key"
-	tea "github.com/charmbracelet/bubbletea"
+	"charm.land/bubbles/v2/key"
+	tea "charm.land/bubbletea/v2"
 )
 
-func (d *datatable) keyMsgHandleMovement(msg tea.KeyMsg) tea.Cmd {
+func (d *datatable) keyMsgHandleMovement(msg tea.KeyPressMsg) tea.Cmd {
 	var cmd tea.Cmd
 
 	switch {
@@ -40,7 +40,7 @@ func (d *datatable) keyMsgHandleMovement(msg tea.KeyMsg) tea.Cmd {
 	return cmd
 }
 
-func (d *datatable) renameModeKeymsg(msg tea.KeyMsg) tea.Cmd {
+func (d *datatable) renameModeKeymsg(msg tea.KeyPressMsg) tea.Cmd {
 	switch {
 	case key.Matches(msg, key.NewBinding(key.WithKeys("enter"))):
 		return d.submitRenameModeCmd()
@@ -51,7 +51,7 @@ func (d *datatable) renameModeKeymsg(msg tea.KeyMsg) tea.Cmd {
 	return nil
 }
 
-func (d *datatable) keyMsgHandler(msg tea.KeyMsg) tea.Cmd {
+func (d *datatable) keyMsgHandler(msg tea.KeyPressMsg) tea.Cmd {
 	d.cursorMu.Lock()
 	defer d.cursorMu.Unlock()
 

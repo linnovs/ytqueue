@@ -5,9 +5,9 @@ import (
 	"io"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/viewport"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/viewport"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -39,7 +39,7 @@ func newLogging(logger io.Reader) *logging {
 	return &logging{
 		logger:   logger,
 		ch:       make(chan string),
-		viewport: viewport.New(0, logHeight),
+		viewport: viewport.New(viewport.WithHeight(logHeight)),
 		result:   &result,
 		style:    style,
 		header:   header,
@@ -82,8 +82,8 @@ func (l *logging) appendLog(msg string) {
 	}
 
 	l.result.WriteString("\n" + msg)
-	resultStr := ansi.Hardwrap(l.result.String(), l.viewport.Width, false)
-	result := lipgloss.NewStyle().Width(l.viewport.Width).Render(resultStr)
+	resultStr := ansi.Hardwrap(l.result.String(), l.viewport.Width(), false)
+	result := lipgloss.NewStyle().Width(l.viewport.Width()).Render(resultStr)
 
 	l.viewport.SetContent(result)
 	l.viewport.GotoBottom()
@@ -94,7 +94,7 @@ func (l *logging) Update(msg tea.Msg) (*logging, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		l.viewport.Width = msg.Width - l.style.GetHorizontalFrameSize()
+		l.viewport.SetWidth(msg.Width - l.style.GetHorizontalFrameSize())
 		l.style = l.style.Width(msg.Width - l.style.GetHorizontalFrameSize())
 
 		return l, nil

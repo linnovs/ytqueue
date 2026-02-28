@@ -4,7 +4,7 @@ import (
 	"slices"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 )
 
 func (d *datatable) clampCursor(cursor int) int {
@@ -12,30 +12,30 @@ func (d *datatable) clampCursor(cursor int) int {
 }
 
 func (d *datatable) clampViewportOffset(cursor int) int {
-	return clamp(cursor, 0, len(d.rows)-d.viewport.Height)
+	return clamp(cursor, 0, len(d.rows)-d.viewport.Height())
 }
 
 func (d *datatable) scrollUp() {
-	if d.cursor < d.viewport.YOffset {
+	if d.cursor < d.viewport.YOffset() {
 		d.viewport.SetYOffset(d.cursor)
 	}
 }
 
 func (d *datatable) scrollDown() {
-	if d.cursor >= d.viewport.YOffset+d.viewport.Height {
-		d.viewport.SetYOffset(d.clampViewportOffset(d.cursor - d.viewport.Height + 1))
+	if d.cursor >= d.viewport.YOffset()+d.viewport.Height() {
+		d.viewport.SetYOffset(d.clampViewportOffset(d.cursor - d.viewport.Height() + 1))
 	}
 }
 
 func (d *datatable) scrollToTop() {
-	if d.viewport.YOffset-d.viewport.Height != d.cursor {
+	if d.viewport.YOffset()-d.viewport.Height() != d.cursor {
 		d.viewport.SetYOffset(d.cursor)
 	}
 }
 
 func (d *datatable) scrollToBottom() {
-	if d.viewport.YOffset+d.viewport.Height-1 != d.cursor {
-		d.viewport.SetYOffset(d.clampViewportOffset(d.cursor - d.viewport.Height + 1))
+	if d.viewport.YOffset()+d.viewport.Height()-1 != d.cursor {
+		d.viewport.SetYOffset(d.clampViewportOffset(d.cursor - d.viewport.Height() + 1))
 	}
 }
 
@@ -71,21 +71,21 @@ func (d *datatable) nameScrollRight(n int) {
 }
 
 func (d *datatable) pageUp() {
-	d.lineUp(d.viewport.Height)
+	d.lineUp(d.viewport.Height())
 }
 
 func (d *datatable) pageDown() {
-	d.lineDown(d.viewport.Height)
+	d.lineDown(d.viewport.Height())
 }
 
 const halfPageFactor = 2
 
 func (d *datatable) halfPageUp() {
-	d.lineUp(d.viewport.Height / halfPageFactor)
+	d.lineUp(d.viewport.Height() / halfPageFactor)
 }
 
 func (d *datatable) halfPageDown() {
-	d.lineDown(d.viewport.Height / halfPageFactor)
+	d.lineDown(d.viewport.Height() / halfPageFactor)
 }
 
 func (d *datatable) gotoTop() {
@@ -112,15 +112,15 @@ func (d *datatable) gotoPlaying() {
 	idx := slices.IndexFunc(d.rows, playingIDIndexFunc(d.player.getCurrentlyPlayingId()))
 	d.cursor = d.clampCursor(idx)
 
-	if d.cursor < d.viewport.YOffset {
+	if d.cursor < d.viewport.YOffset() {
 		d.scrollToTop()
-	} else if d.cursor >= d.viewport.YOffset+d.viewport.Height {
+	} else if d.cursor >= d.viewport.YOffset()+d.viewport.Height() {
 		d.scrollToBottom()
 	}
 }
 
 func (d *datatable) cursor2middle() {
-	d.viewport.YOffset = (d.clampViewportOffset(d.cursor - (d.viewport.Height / 2)))
+	d.viewport.SetYOffset(d.clampViewportOffset(d.cursor - (d.viewport.Height() / 2)))
 }
 
 func (d *datatable) moveRow(n int) tea.Cmd {

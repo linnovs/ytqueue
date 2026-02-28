@@ -8,10 +8,10 @@ import (
 	"sync"
 	"time"
 
+	"charm.land/bubbles/v2/progress"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/adrg/xdg"
-	"github.com/charmbracelet/bubbles/progress"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 )
 
 type (
@@ -66,7 +66,7 @@ func newPlayer() *player {
 		processMu:  new(sync.RWMutex),
 		sockPath:   sockPath,
 		commandCh:  commandCh,
-		progress:   progress.New(progress.WithDefaultGradient(), progress.WithoutPercentage()),
+		progress:   progress.New(progress.WithDefaultBlend(), progress.WithoutPercentage()),
 	}
 }
 
@@ -79,7 +79,7 @@ func (p *player) renderPlayProgress(width int) string {
 	playtime := renderPlaytime(p.getPlaytime())
 	playStatus := renderPlayingStatus(p.getPlaying())
 	remaining := renderPlaytimeRemaining(p.getRemainingTime())
-	p.progress.Width = width - w(playStatus) - w(playtime) - w(remaining)
+	p.progress.SetWidth(width - w(playStatus) - w(playtime) - w(remaining))
 	playProgress := p.progress.View()
 
 	return lipgloss.JoinHorizontal(

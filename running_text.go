@@ -5,8 +5,8 @@ import (
 	"time"
 	"unicode/utf8"
 
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/mattn/go-runewidth"
 )
 
@@ -74,7 +74,7 @@ func (r *runningTextModel) updateText(text string) tea.Cmd {
 	}
 }
 
-func (r *runningTextModel) View() string {
+func (r *runningTextModel) View() tea.View {
 	width := 0
 	var display strings.Builder
 
@@ -87,5 +87,7 @@ func (r *runningTextModel) View() string {
 		display.WriteRune(ch)
 	}
 
-	return r.style.Width(r.width + r.style.GetHorizontalPadding()).Render(display.String())
+	return tea.NewView(
+		r.style.Width(r.width + r.style.GetHorizontalPadding()).Render(display.String()),
+	)
 }

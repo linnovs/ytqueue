@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/charmbracelet/bubbles/progress"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/progress"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"golang.org/x/sys/unix"
 )
 
@@ -73,7 +73,7 @@ func newStatus(downloadDir string) *status {
 		style:               style,
 		downloadPath:        downloadPath,
 		downloadDir:         downloadDir,
-		progress:            progress.New(progress.WithDefaultGradient()),
+		progress:            progress.New(progress.WithDefaultBlend()),
 		status:              downloadStatusIdle,
 	}
 }
@@ -132,7 +132,7 @@ func (d *status) Update(msg tea.Msg) (*status, tea.Cmd) {
 	case progress.FrameMsg:
 		progressModel, cmd := d.progress.Update(msg)
 		cmds = append(cmds, cmd)
-		d.progress = progressModel.(progress.Model)
+		d.progress = progressModel
 	}
 
 	filename, cmd := d.filename.Update(msg)
@@ -196,7 +196,7 @@ func (d *status) View() string {
 	d.progress.ShowPercentage = false
 
 	if d.status == downloadStatusDownloading {
-		filename = d.filename.View()
+		filename = d.filename.View().Content
 		speed = d.etaStyle.Render(formatSpeed(d.speed))
 		elapsed = d.etaStyle.Render(time.Duration(d.elapsed).Round(time.Second).String())
 		eta = d.etaStyle.Render(
@@ -205,7 +205,7 @@ func (d *status) View() string {
 		d.progress.ShowPercentage = true
 	}
 
-	d.progress.Width = d.width - w(status) - w(filename) - w(speed) - w(elapsed) - w(eta)
+	d.progress.SetWidth(d.width - w(status) - w(filename) - w(speed) - w(elapsed) - w(eta))
 	progress := d.progress.View()
 
 	downloadBar := lipgloss.JoinHorizontal(

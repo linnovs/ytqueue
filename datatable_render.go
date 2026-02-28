@@ -3,7 +3,7 @@ package main
 import (
 	"strings"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 	"github.com/mattn/go-runewidth"
 )
 
@@ -26,7 +26,7 @@ func (d *datatable) renderRow(r int) string {
 	defer d.cursorMu.RUnlock()
 
 	if d.renameMode && r == d.cursor {
-		d.renameInput.Width = d.widths[colName]
+		d.renameInput.SetWidth(d.widths[colName])
 
 		return d.renameInput.View()
 	}
@@ -83,7 +83,7 @@ func (d *datatable) renderRow(r int) string {
 func (d *datatable) View() string {
 	playingRow := ""
 	header := d.renderHeader()
-	d.viewport.Height = d.styles.GetHeight() - lipgloss.Height(header)
+	d.viewport.SetHeight(d.styles.GetHeight() - lipgloss.Height(header))
 	content := lipgloss.JoinVertical(lipgloss.Top, header, d.viewport.View())
 
 	if playingRow != "" {

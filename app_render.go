@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/charmbracelet/bubbles/help"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/help"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 )
 
 const (
@@ -13,7 +14,7 @@ const (
 	minHeight = 35
 )
 
-func (m appModel) terminalTooSmall() string {
+func (m appModel) terminalTooSmall() tea.View {
 	message := lipgloss.NewStyle().Bold(true).Render("Terminal size too small")
 	currentSize := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("9")).
@@ -22,7 +23,7 @@ func (m appModel) terminalTooSmall() string {
 		Foreground(lipgloss.Color("10")).
 		Render(fmt.Sprintf("%dx%d", minWidth, minHeight))
 
-	return lipgloss.NewStyle().
+	return tea.NewView(lipgloss.NewStyle().
 		Width(m.width).
 		Height(m.height).
 		Align(lipgloss.Center, lipgloss.Center).
@@ -32,7 +33,7 @@ func (m appModel) terminalTooSmall() string {
 				"Current size: "+currentSize,
 				"Minimum size: "+minimumSize,
 			),
-		)
+		))
 }
 
 func (m appModel) footerView() string {
@@ -45,7 +46,7 @@ func (m appModel) footerView() string {
 		keymap = m.keymap.datatable
 	}
 
-	m.help.Width = m.width
+	m.help.SetWidth(m.width)
 	helpView := m.help.View(keymap)
 
 	var footerItem []string
@@ -97,7 +98,7 @@ func (m appModel) calculateHeights(components []string) int {
 	return totalHeight
 }
 
-func (m appModel) View() string {
+func (m appModel) View() tea.View {
 	if m.width < minWidth || m.height < minHeight {
 		return m.terminalTooSmall()
 	}
@@ -117,7 +118,9 @@ func (m appModel) View() string {
 	m.datatable.setHeight(heightAdjusted)
 	sections = slices.Insert(sections, datatableIdx, m.datatable.View())
 
-	return lipgloss.JoinVertical(lipgloss.Center, slices.DeleteFunc(sections, func(c string) bool {
-		return c == ""
-	})...)
+	return tea.NewView(
+		lipgloss.JoinVertical(lipgloss.Center, slices.DeleteFunc(sections, func(c string) bool {
+			return c == ""
+		})...),
+	)
 }

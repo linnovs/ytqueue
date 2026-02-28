@@ -3,7 +3,7 @@ package main
 import (
 	"time"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 )
 
 func formatPlaytime(d time.Duration) string {

@@ -3,8 +3,9 @@ package main
 import (
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
+	"charm.land/lipgloss/v2/compat"
 )
 
 type errorMsg struct {
@@ -36,5 +37,6 @@ func resetErrorMsgCmd(err error, timeoutArg ...time.Duration) tea.Cmd {
 }
 
 func newErrorStyle() lipgloss.Style {
-	return lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "196", Dark: "124"})
+	return lipgloss.NewStyle().
+		Foreground(compat.AdaptiveColor{Light: lipgloss.Color("196"), Dark: lipgloss.Color("124")})
 }

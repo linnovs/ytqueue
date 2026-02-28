@@ -7,8 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
+	tea "charm.land/bubbletea/v2"
 	"github.com/adrg/xdg"
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/linnovs/ytqueue/database"
 )
 
@@ -75,10 +75,7 @@ func runApp() int {
 
 	d := newDownloader(cfg)
 	player := newPlayer()
-	p := tea.NewProgram(
-		newModel(d, player, reader, ctx, cancel, queries, cfg),
-		tea.WithAltScreen(),
-	)
+	p := tea.NewProgram(newModel(d, player, reader, ctx, cancel, queries, cfg))
 	d.setProgram(p)
 	player.setProgram(p)
 

@@ -1,14 +1,15 @@
 package main
 
 import (
+	"image/color"
 	"strings"
 	"sync"
 
-	"github.com/charmbracelet/bubbles/progress"
-	"github.com/charmbracelet/bubbles/textinput"
-	"github.com/charmbracelet/bubbles/viewport"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/progress"
+	"charm.land/bubbles/v2/textinput"
+	"charm.land/bubbles/v2/viewport"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/linnovs/ytqueue/database"
 )
 
@@ -44,7 +45,7 @@ type datatable struct {
 	styles              lipgloss.Style
 	headerStyle         lipgloss.Style
 	selectedRowStyle    lipgloss.Style
-	focusedBGColor      lipgloss.Color
+	focusedBGColor      color.Color
 	keymap              datatableKeymap
 	columns             []column
 	rowMu               sync.RWMutex
@@ -73,7 +74,7 @@ func newDatatable(player *player, queries *database.Queries, getCtx contextFn) *
 		widths:           make(map[column]int),
 		getCtx:           getCtx,
 		datastore:        newDatastore(queries),
-		viewport:         viewport.New(0, defaultViewportHeight),
+		viewport:         viewport.New(viewport.WithHeight(defaultViewportHeight)),
 		headerStyle:      lipgloss.NewStyle().Bold(true),
 		selectedRowStyle: lipgloss.NewStyle().
 			Background(lipgloss.Color("244")).
@@ -200,7 +201,7 @@ func (d *datatable) Update(msg tea.Msg) (*datatable, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		d.width = msg.Width - d.styles.GetHorizontalFrameSize()
-		d.viewport.Width = d.width
+		d.viewport.SetWidth(d.width)
 		d.calculateColWidth()
 	case finishDownloadMsg:
 		cmds = append(cmds, d.newVideoCmd(msg.filename, msg.url, msg.downloadPath))
@@ -236,10 +237,10 @@ func (d *datatable) Update(msg tea.Msg) (*datatable, tea.Cmd) {
 	case progress.FrameMsg:
 		model, cmd := d.player.progress.Update(msg)
 		cmds = append(cmds, cmd)
-		d.player.progress = model.(progress.Model)
+		d.player.progress = model
 	case quitMsg:
 		cmds = append(cmds, d.player.quit())
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		cmds = append(cmds, d.keyMsgHandler(msg))
 	}
 

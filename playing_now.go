@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/charmbracelet/bubbles/progress"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/progress"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 )
 
 type playingNow struct {
@@ -25,7 +25,7 @@ func newPlayingNow(player *player, getCtx contextFn) *playingNow {
 		Background(lipgloss.Color("48")).
 		Foreground(lipgloss.Color("231")).SetString("Playing Now")
 	filenameStyle := headerStyle.UnsetString().Background(lipgloss.Color("99"))
-	pp := progress.New(progress.WithDefaultGradient(), progress.WithoutPercentage())
+	pp := progress.New(progress.WithDefaultBlend(), progress.WithoutPercentage())
 
 	return &playingNow{
 		player:        player,
@@ -50,7 +50,7 @@ func (p *playingNow) Update(msg tea.Msg) (*playingNow, tea.Cmd) {
 	case progress.FrameMsg:
 		model, cmd := p.progress.Update(msg)
 		cmds = append(cmds, cmd)
-		p.progress = model.(progress.Model)
+		p.progress = model
 	}
 
 	return p, tea.Batch(cmds...)

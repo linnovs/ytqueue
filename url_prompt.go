@@ -5,12 +5,12 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/spinner"
-	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/lipgloss/list"
+	"charm.land/bubbles/v2/key"
+	"charm.land/bubbles/v2/spinner"
+	"charm.land/bubbles/v2/textinput"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
+	"charm.land/lipgloss/v2/list"
 )
 
 type submitURLMsg struct {
@@ -86,7 +86,7 @@ func (p *urlPrompt) Update(msg tea.Msg) (*urlPrompt, tea.Cmd) {
 		var cmd tea.Cmd
 		p.spinner, cmd = p.spinner.Update(msg)
 		cmds = append(cmds, cmd)
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		if !p.prompt.Focused() {
 			break
 		}
@@ -158,8 +158,8 @@ func (p *urlPrompt) renderQueueList() string {
 func (p *urlPrompt) View() string {
 	w := lipgloss.Width
 	queueSize := p.inqueueStyle.Render(fmt.Sprint(len(p.queueList)))
-	p.prompt.Width = p.width - w(p.prompt.Prompt) - 1 // extra rune size
-	p.prompt.Width -= w(p.inqueueHeader) + w(queueSize)
+	p.prompt.SetWidth(p.width - w(p.prompt.Prompt) - 1) // extra rune size
+	p.prompt.SetWidth(p.prompt.Width() - w(p.inqueueHeader) - w(queueSize))
 	content := p.prompt.View()
 	content = lipgloss.JoinHorizontal(lipgloss.Top, content, p.inqueueHeader, queueSize)
 
