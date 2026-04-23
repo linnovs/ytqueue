@@ -7,5 +7,6 @@
         "mergeConfidence:all-badges",
         "schedule:weekends",
         ":prNotPending"
-    ]
+    ],
+    "timezone": "Asia/Hong_Kong"
 }
