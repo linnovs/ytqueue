@@ -1,6 +1,6 @@
 module github.com/linnovs/ytqueue
 
-go 1.25.5
+go 1.26.0
 
 require (
 	charm.land/bubbles/v2 v2.1.0
@@ -14,7 +14,7 @@ require (
 	github.com/knadh/koanf/providers/file v1.2.1
 	github.com/knadh/koanf/v2 v2.3.4
 	github.com/mattn/go-runewidth v0.0.23
-	golang.org/x/sys v0.44.0
+	golang.org/x/sys v0.48.0
 	modernc.org/sqlite v1.50.0
 )
 
